@@ -3,8 +3,6 @@ require("dotenv").config();
 
 const express = require('express');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = require('express-rate-limit');
 
 const app = express();
 
@@ -16,15 +14,6 @@ app.set('trust proxy', true);
 app.use(cors({
   credentials: true
 }));
-
-
-const limiter = rateLimit({
- windowMs: 15 * 60 * 1000,
- max: 100,
- keyGenerator: ipKeyGenerator,
- skip: (req, res) => false
-});
-
 
 // Configuración de la BD
 const sequelize = require("./config/sequelize");
