@@ -7,6 +7,10 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+
+app.set('trust proxy', true);
+
+
 // Then CORS
 app.use(cors({
   credentials: true
@@ -15,7 +19,9 @@ app.use(cors({
 const limiter = rateLimit({
  windowMs: 15 * 60 * 1000,
  max: 100,
- skip: (req, res) => false
+ keyGenerator: (req, res) => {
+   return req.ip;
+ }
 });
 
 
