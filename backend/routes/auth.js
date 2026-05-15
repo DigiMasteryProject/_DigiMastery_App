@@ -3,6 +3,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const rateLimit = require("express-rate-limit");
 const { body, validationResult } = require("express-validator");
 
 const router = express.Router();
