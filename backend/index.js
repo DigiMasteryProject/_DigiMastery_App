@@ -79,6 +79,11 @@ app.use((req, res, next) => {
 ========================= */
 require("./models/init-models")(sequelize);
 
+app.all("*", (req, res, next) => {
+  console.log("🔥 REQUEST:", req.method, req.url);
+  next();
+});
+
 /* =========================
    ROUTES
 ========================= */
