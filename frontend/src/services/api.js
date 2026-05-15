@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 
 const api = axios.create({
   // baseURL: "http://localhost:3000/api",
-  baseURL: "http://10.253.1.38:3001/",
+  baseURL: "https://backend-production-8080.up.railway.app",
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
