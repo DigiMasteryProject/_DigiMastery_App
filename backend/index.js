@@ -15,11 +15,10 @@ app.use(cors({
   credentials: true
 }));
 
-// Then rate limiter
 const limiter = rateLimit({
  windowMs: 15 * 60 * 1000,
  max: 100,
- trustProxy: false
+ skip: (req, res) => false
 });
 
 
