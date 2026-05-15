@@ -1,0 +1,200 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { styles } from "../src/components/digimon/Styles";
+
+import api from "../src/services/api";
+
+import DigimonEvolutionSection from "../src/components/digimon/DigimonEvolutionSection";
+import DigimonEditModal from "../src/components/digimon/DigimonEditModal";
+import StatBox from "../src/components/digimon/StatBox";
+import StatBox2 from "../src/components/digimon/StatBox2";
+import DigimonSkills from "@/src/components/digimon/DigimonSkills";
+
+export default function DigimonSheet() {
+  const params = useLocalSearchParams<{ digimonId?: string }>();
+  const digimonId = Number(params.digimonId);
+
+  const router = useRouter();
+
+  const [digimon, setDigimon] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [editVisible, setEditVisible] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [speciesSearch, setSpeciesSearch] = useState("");
+  const [evolutionOptions, setEvolutionOptions] = useState<any[]>([]);
+
+  const [allSpecies, setAllSpecies] = useState<any[]>([]);
+
+  /* ================= FETCH DIGIMON ================= */
+
+  const fetchDigimon = async () => {
+    try {
+      setLoading(true);
+
+      const res = await api.get(`/partner_digimon/${digimonId}`);
+      const p = res.datos;
+
+      const res2 = await api.get(`/digimon/${p.id_digimon}`);
+      const d = res2.datos;
+
+      setDigimon({
+        ...d,
+        id_digimon: d.id,
+        nickname: p.nickname,
+        level: p.level,
+        attack_evs: p.atk_ev,
+        defense_evs: p.def_ev,
+        speed_evs: p.spe_ev,
+        spirit_evs: p.spirit_ev,
+        friendship: p.friendship,
+        skills: d.skills || [],
+      });
+
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= FETCH SPECIES ================= */
+
+  const fetchSpecies = async () => {
+    try {
+      const res = await api.get(`/digimon`);
+      setAllSpecies(res.datos || []);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    if (!digimonId) return;
+    fetchDigimon();
+    fetchSpecies();
+  }, [digimonId]);
+
+  if (!digimonId) return <Text>No Digimon selected</Text>;
+
+  if (loading || !digimon)
+    return <ActivityIndicator size="large" color="#0ff" />;
+
+  const openEditModal = () => {
+    setEditData({
+      nickname: digimon.nickname || "",
+      level: digimon.level || 1,
+      atk_ev: digimon.attack_evs || 0,
+      def_ev: digimon.defense_evs || 0,
+      spe_ev: digimon.speed_evs || 0,
+      spirit_ev: digimon.spirit_evs || 0,
+      friendship: digimon.friendship || 0,
+      id_digimon: digimon.id_digimon || 0,
+    });
+
+    setEditVisible(true);
+  };
+
+  return (
+    <LinearGradient colors={["#0a0e1f", "#1a2342", "#2d3561"]} style={{ flex: 1 }}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              position: "absolute",
+              top: 16,
+              left: 16,
+              zIndex: 10,
+              padding: 8,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ color: "#0ff", fontWeight: "bold" }}>Close</Text>
+          </TouchableOpacity>
+    
+          <TouchableOpacity
+            onPress={openEditModal}
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              zIndex: 10,
+              padding: 8,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ color: "#0ff", fontWeight: "bold" }}>Edit</Text>
+          </TouchableOpacity>
+    
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+            <View style={{ alignItems: "center", paddingVertical: 12 }}>
+              <Text style={styles.digimonName}>{digimon.nickname?.toUpperCase()}</Text>
+              <Text style={styles.digimonSpecies}>
+                (Lv {digimon.level} {digimon.name})
+              </Text>
+              <Text style={styles.subHeaderSmall}>
+                Attribute: {digimon.attribute} | Element: {digimon.element}
+              </Text>
+              <Text style={styles.subHeaderSmall}>
+                Growth Phase: {digimon.growth_phase}
+              </Text>
+            </View>
+        {/* STATS */}
+        <View style={{ flexDirection: "row" }}>
+          <StatBox label="HP" value={digimon.health_points} level={digimon.level} color="#f9a" />
+          <StatBox label="SP" value={digimon.skill_points} level={digimon.level} color="#39f" />
+        </View>
+
+        <View style={{ flexDirection: "row" }}>
+          <StatBox2 label="ATK" value1={digimon.attack} value2={digimon.attack_evs} level={digimon.level} color="#f90" />
+          <StatBox2 label="DEF" value1={digimon.defense} value2={digimon.defense_evs} level={digimon.level} color="#0f0" />
+        </View>
+
+        <View style={{ flexDirection: "row" }}>
+          <StatBox2 label="SPIRIT" value1={digimon.spirit} value2={digimon.spirit_evs} level={digimon.level} color="#90f" />
+          <StatBox2 label="SPD" value1={digimon.speed} value2={digimon.speed_evs} level={digimon.level} color="#ff0" />
+        </View>
+
+        {/* SKILLS (te faltaba esto) */}
+        <DigimonSkills skills={digimon.skills} />
+
+        {/* EVOLUTIONS */}
+        <DigimonEvolutionSection
+          digimonId={digimon.id_digimon}
+          allSpecies={allSpecies}
+          onDataLoaded={(data) => {
+            setEvolutionOptions(data.evolutionOptions);
+          }}
+        />
+
+      </ScrollView>
+
+      {editData && (
+        <DigimonEditModal
+          visible={editVisible}
+          onClose={() => setEditVisible(false)}
+          onSave={async () => {
+            await api.put(`/partner_digimon/${digimonId}`, editData);
+            setEditVisible(false);
+            fetchDigimon();
+          }}
+          editData={editData}
+          setEditData={setEditData}
+          speciesSearch={speciesSearch}
+          setSpeciesSearch={setSpeciesSearch}
+          evolutionOptions={evolutionOptions}
+          showFriendship={true}
+        />
+      )}
+    </LinearGradient>
+  );
+}

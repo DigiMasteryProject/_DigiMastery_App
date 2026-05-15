@@ -1,0 +1,18 @@
+# Dockerfile
+FROM node:20
+
+WORKDIR /app
+
+# Copiar dependencias primero (mejor cache)
+COPY package*.json ./
+
+RUN npm install
+
+# Copiar el resto del proyecto
+COPY . .
+
+# Exponer puerto (Railway usa PORT dinámico)
+EXPOSE 3001
+
+# Comando de arranque
+CMD ["npm", "start"]
