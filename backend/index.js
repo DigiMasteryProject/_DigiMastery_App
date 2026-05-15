@@ -7,9 +7,6 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
-// Set trust proxy FIRST
-app.set('trust proxy', true);
-
 // Then CORS
 app.use(cors({
   credentials: true
