@@ -1,18 +1,26 @@
 // index.js
 require("dotenv").config();
 
-const express = require("express");
-const cors = require("cors");
+const express = require('express');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+// Set trust proxy FIRST
+app.set('trust proxy', true);
+
+// Then CORS
 app.use(cors({
   credentials: true
 }));
- 
-app.use(express.json());
 
-
+// Then rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+});
+app.use(limiter);
 
 // Configuración de la BD
 const sequelize = require("./config/sequelize");
