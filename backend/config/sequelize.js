@@ -1,7 +1,7 @@
 // config/sequelize.js
+
 const { logMensaje } = require("../utils/logger.js");
 const { Sequelize } = require("sequelize");
-
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -11,23 +11,31 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
     dialect: "mysql",
+
     logging: false,
+
     dialectOptions: {
       connectTimeout: 60000,
+      multipleStatements: true,
     },
   }
 );
 
-// Probar la conexión
+// =====================================
+// TEST CONNECTION
+// =====================================
+
 (async () => {
   try {
     await sequelize.authenticate();
+
     if (process.env.NODE_ENV !== "test") {
-      logMensaje("Conexión exitosa a la base de datos MySQL");
+      logMensaje("✅ Conexión exitosa a MySQL");
     }
+
   } catch (error) {
-    console.error("Error de conexión:", error);
+    console.error("❌ Error de conexión:", error);
   }
 })();
 
-module.exports = sequelize; // Exportar la instancia de Sequelize para usarla en otros archivos
+module.exports = sequelize;
