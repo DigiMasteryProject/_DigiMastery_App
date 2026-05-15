@@ -1,133 +1,145 @@
 // index.js
 require("dotenv").config();
 
-const express = require('express');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
+const express = require("express");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+const fs = require("fs");
+const path = require("path");
+
+const sequelize = require("./config/sequelize");
 
 const app = express();
 
-app.set('trust proxy', true);
+app.set("trust proxy", 1);
 
-// Then CORS
+// =========================
+// MIDDLEWARES
+// =========================
+
 app.use(cors({
-  credentials: true
+  origin: true,
+  credentials: true,
 }));
 
-const limiter = rateLimit({
- windowMs: 15 * 60 * 1000,
- max: 100,
- skip: (req, res) => false
-});
-
-
-// Configuración de la BD
-const sequelize = require("./config/sequelize");
-
-// Inicializar modelos y relaciones
-require("./models/init-models")(sequelize);
-
-
-// Rutas
-
-const campaignRoute = require("./routes/campaignRoute");
-const codeShardRoute = require("./routes/codeShardRoute");
-const digimonRoute = require("./routes/digimonRoute");
-const digimonEvolutionRoute = require("./routes/digimonEvolutionRoute");
-const digimonSkillRoute = require("./routes/digimonSkillRoute");
-const familyRoute = require("./routes/familyRoute");
-const humanRoute = require("./routes/humanRoute");
-const npcRoute = require("./routes/npcRoute");
-const otherDigimonRoute = require("./routes/otherDigimonRoute");
-const partnerDigimonRoute = require("./routes/partnerDigimonRoute");
-const rewardRoute = require("./routes/rewardRoute");
-const sessionRoute = require("./routes/sessionRoute");
-const skillRoute = require("./routes/skillRoute");
-const userRoute = require("./routes/userRoute");
-const userCampaignRoute = require("./routes/userCampaignRoute");
-const mailRoute = require("./routes/mailRoute");
-const authRoute = require("./routes/auth");
-
-// Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rutas principales
-app.use("/auth", authRoute);
-app.use("/user", userRoute);
-app.use("/digimon", digimonRoute);
-app.use("/digimon_evolution", digimonEvolutionRoute);
-app.use("/campaign", campaignRoute);
-app.use("/family", familyRoute);
-app.use("/reward", rewardRoute);
-app.use("/skill", skillRoute);
-app.use("/code_shard", codeShardRoute);
-app.use("/human", humanRoute);
-app.use("/npc", npcRoute);
-app.use("/other_digimon", otherDigimonRoute);
-app.use("/partner_digimon", partnerDigimonRoute);
-app.use("/session", sessionRoute);
-app.use("/user_campaign", userCampaignRoute);
-app.use("/suggestions", mailRoute);
-// Ruta raíz
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use(limiter);
+
+// =========================
+// MODELOS
+// =========================
+
+require("./models/init-models")(sequelize);
+
+// =========================
+// RUTAS
+// =========================
+
+app.use("/auth", require("./routes/auth"));
+app.use("/user", require("./routes/userRoute"));
+app.use("/digimon", require("./routes/digimonRoute"));
+app.use("/digimon_evolution", require("./routes/digimonEvolutionRoute"));
+app.use("/campaign", require("./routes/campaignRoute"));
+app.use("/family", require("./routes/familyRoute"));
+app.use("/reward", require("./routes/rewardRoute"));
+app.use("/skill", require("./routes/skillRoute"));
+app.use("/code_shard", require("./routes/codeShardRoute"));
+app.use("/human", require("./routes/humanRoute"));
+app.use("/npc", require("./routes/npcRoute"));
+app.use("/other_digimon", require("./routes/otherDigimonRoute"));
+app.use("/partner_digimon", require("./routes/partnerDigimonRoute"));
+app.use("/session", require("./routes/sessionRoute"));
+app.use("/user_campaign", require("./routes/userCampaignRoute"));
+app.use("/suggestions", require("./routes/mailRoute"));
+
+// =========================
+// ROOT
+// =========================
+
 app.get("/", (req, res) => {
   res.json({
-    mensaje: "API REST de Municipios y Ordenanzas operativa 🚀",
+    mensaje: "DigiMastery API running 🚀",
   });
 });
 
-// Middleware de errores
+// =========================
+// ERROR HANDLER
+// =========================
+
 app.use((err, req, res, next) => {
   console.error(err);
+
   res.status(500).json({
-    error: "Error interno del servidor",
+    error: "Internal server error",
   });
 });
 
-// Arranque del servidor
+// =========================
+// IMPORT SQL
+// =========================
+
+const importDatabaseIfNeeded = async () => {
+  try {
+    const [tables] = await sequelize.query(`
+      SELECT COUNT(*) as count
+      FROM information_schema.tables
+      WHERE table_schema = ?
+    `, {
+      replacements: [process.env.DB_NAME],
+    });
+
+    if (tables[0].count > 0) {
+      console.log("✅ Database already initialized");
+      return;
+    }
+
+    console.log("📊 Importing database schema...");
+
+    const sqlFile = path.join(
+      __dirname,
+      "sql",
+      "_DIGIMASTERY_DB_.sql"
+    );
+
+    const sqlContent = fs.readFileSync(sqlFile, "utf8");
+
+    await sequelize.query(sqlContent);
+
+    console.log("✅ Database imported successfully");
+
+  } catch (error) {
+    console.error("❌ SQL import error:", error);
+  }
+};
+
+// =========================
+// START SERVER
+// =========================
+
 const PORT = process.env.PORT || 3001;
 
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log("✅ Conectado a MySQL correctamente");
-    const fs = require('fs');
-const path = require('path');
-
-// Import SQL schema on startup
-(async () => {
+const startServer = async () => {
   try {
-    const sqlFile = path.join(__dirname, 'sql', '_DIGIMASTERY_DB_.sql');
-    const sqlContent = fs.readFileSync(sqlFile, 'utf8');
-    
-    // Check if tables exist
-    const [tables] = await sequelize.query(`
-      SELECT COUNT(*) as count FROM information_schema.tables 
-      WHERE table_schema = ?
-    `, { replacements: [process.env.DB_NAME] });
-    
-    if (tables[0].count === 0) {
-      console.log('📊 Importing database schema...');
-      // Split by semicolon and execute each statement
-      const statements = sqlContent.split(';').filter(s => s.trim());
-      for (const statement of statements) {
-        if (statement.trim()) {
-          await sequelize.query(statement);
-        }
-      }
-      console.log('✅ Database schema imported successfully');
-    } else {
-      console.log('✅ Database schema already exists');
-    }
-  } catch (error) {
-    console.error('⚠️ Error importing schema:', error.message);
-  }
-})();
+    await sequelize.authenticate();
+
+    console.log("✅ MySQL connected");
+
+    await importDatabaseIfNeeded();
 
     app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor en puerto ${PORT}`);
-});
-  })
-  .catch((error) => {
-    console.error("❌ Error al conectar con la base de datos:", error);
-  });
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+
+  } catch (error) {
+    console.error("❌ Startup error:", error);
+  }
+};
+
+startServer();
