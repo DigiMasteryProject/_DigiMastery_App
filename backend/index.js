@@ -17,10 +17,11 @@ app.use(cors({
 
 // Then rate limiter
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
+ windowMs: 15 * 60 * 1000,
+ max: 100,
+ trustProxy: false
 });
-app.use(limiter);
+
 
 // Configuración de la BD
 const sequelize = require("./config/sequelize");
