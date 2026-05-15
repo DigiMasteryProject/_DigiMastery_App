@@ -20,12 +20,21 @@ app.set("trust proxy", 1);
 // =====================================
 // MIDDLEWARES
 // =====================================
+const allowedOrigins = [
+  "http://localhost:8081",
+  "http://localhost:3001",
+  "https://backend-production-cae42.up.railway.app",
+];
 
 app.use(
   cors({
-  origin: "*",
-  credentials: false
-})
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
 );
 
 app.use(express.json({ limit: "10mb" }));
