@@ -2,6 +2,7 @@ const mailService = require("../services/mailService.js");
 
 class SuggestionController {
   async sendSuggestion(req, res) {
+    console.log("HIT /suggestions");
     const {
       from,
       username,
