@@ -81,6 +81,39 @@ sequelize
   .authenticate()
   .then(() => {
     console.log("✅ Conectado a MySQL correctamente");
+    const fs = require('fs');
+const path = require('path');
+
+// Import SQL schema on startup
+(async () => {
+  try {
+    const sqlFile = path.join(__dirname, 'sql', '_DIGIMASTERY_DB_.sql');
+    const sqlContent = fs.readFileSync(sqlFile, 'utf8');
+    
+    // Check if tables exist
+    const [tables] = await sequelize.query(`
+      SELECT COUNT(*) as count FROM information_schema.tables 
+      WHERE table_schema = ?
+    `, { replacements: [process.env.DB_NAME] });
+    
+    if (tables[0].count === 0) {
+      console.log('📊 Importing database schema...');
+      // Split by semicolon and execute each statement
+      const statements = sqlContent.split(';').filter(s => s.trim());
+      for (const statement of statements) {
+        if (statement.trim()) {
+          await sequelize.query(statement);
+        }
+      }
+      console.log('✅ Database schema imported successfully');
+    } else {
+      console.log('✅ Database schema already exists');
+    }
+  } catch (error) {
+    console.error('⚠️ Error importing schema:', error.message);
+  }
+})();
+
     app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor en puerto ${PORT}`);
 });
