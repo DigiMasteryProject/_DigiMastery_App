@@ -1,43 +1,23 @@
 const mailService = require("../services/mailService.js");
+async sendSuggestion(req, res) {
+  const { from, username, userId, message } = req.body;
 
-class SuggestionController {
-  async sendSuggestion(req, res) {
-    console.log("HIT /suggestions");
-    const {
-      from,
-      username,
-      userId,
-      message,
-    } = req.body;
-
-    if (!from || !message) {
-      return res.status(400).json({
-        ok: false,
-        mensaje: "Faltan datos",
-      });
-    }
-
-    try {
-      await mailService.sendSuggestion(
-        from,
-        username,
-        userId,
-        message
-      );
-
-      return res.status(200).json({
-        ok: true,
-        mensaje: "Sugerencia enviada correctamente",
-      });
-    } catch (err) {
-      console.log(err);
-
-      return res.status(500).json({
-        ok: false,
-        mensaje: "Error al enviar sugerencia",
-      });
-    }
+  if (!from || !message) {
+    return res.status(400).json({ ok: false, mensaje: "Faltan datos" });
   }
+
+  // 🔥 RESPONDES INMEDIATO
+  res.status(200).json({
+    ok: true,
+    mensaje: "Sugerencia recibida",
+  });
+
+  // 🔥 ENVÍO EN BACKGROUND
+  mailService
+    .sendSuggestion(from, username, userId, message)
+    .catch((err) => {
+      console.log("❌ Mail error:", err);
+    });
 }
 
 module.exports = new SuggestionController();
