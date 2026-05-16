@@ -53,7 +53,7 @@ app.use(express.urlencoded({ extended: true }));
 ========================= */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10000,
+  max: 50000,
 
   keyGenerator: (req) => {
     const forwarded = req.headers["x-forwarded-for"];
