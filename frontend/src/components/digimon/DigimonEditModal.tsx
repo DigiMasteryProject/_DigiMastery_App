@@ -187,13 +187,14 @@ export default function DigimonEditModal({
             }
             style={styles.input}
           >
-            <Picker.Item label="-- Select Species --" value={0} />
+            <Picker.Item label="-- Select Species --" value={0}  color="000"/>
 
             {evolutionOptions?.map((item) => (
                <Picker.Item
       key={item.id}
       label={item.name}
       value={item.id}
+      color="#000"
     />
             ))}
           </Picker>

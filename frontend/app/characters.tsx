@@ -1,23 +1,23 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  Alert,
-  Platform,
-  Modal,
-  TextInput,
-  StyleSheet,
-  Button,
-} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  FlatList,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { getHumanArchetype } from "../src/components/human/HumanArchetypeCalc";
 import api from "../src/services/api";
-import { Picker } from "@react-native-picker/picker";
-import {getHumanArchetype} from "../src/components/human/HumanArchetypeCalc";
 
 interface UserCampaign {
   id: number;
@@ -331,9 +331,11 @@ export default function CharactersScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16, flex: 1 }}>
+      <View
+        style={{ flexDirection: "row", gap: 12, marginBottom: 16, flex: 1 }}
+      >
         {/* HUMAN COLUMN */}
-        <View style={{ flex: 1 , height: "100%"}}>
+        <View style={{ flex: 1, height: "100%" }}>
           <Text
             style={{ color: "#00d9ff", fontWeight: "bold", marginBottom: 8 }}
           >
@@ -386,7 +388,7 @@ export default function CharactersScreen() {
         </View>
 
         {/* DIGIMON COLUMN */}
-        <View style={{ flex: 1 , height: "100%"}}>
+        <View style={{ flex: 1, height: "100%" }}>
           <Text
             style={{ color: "#00d9ff", fontWeight: "bold", marginBottom: 8 }}
           >
@@ -455,7 +457,7 @@ export default function CharactersScreen() {
                   {item.partner_digimon?.id_digimon?.growth_phase || "-"}{" "}
                   Friendship: {item.partner_digimon?.friendship || 0}%
                 </Text>
-             </TouchableOpacity>
+              </TouchableOpacity>
             )}
           />
         </View>
@@ -635,15 +637,24 @@ export default function CharactersScreen() {
             <Picker
               selectedValue={newDigimon.id_digimon}
               onValueChange={(itemValue) =>
-                setNewDigimon((d) => ({ ...d, id_digimon: Number(itemValue) }))
+                setNewDigimon((d) => ({
+                  ...d,
+                  id_digimon: Number(itemValue),
+                }))
               }
               style={{
                 backgroundColor: "#fff",
                 marginBottom: 12,
                 borderRadius: 4,
+                color: "#000",
               }}
             >
-              <Picker.Item label="-- Select Species --" value={0} />
+              <Picker.Item
+                label="-- Select Species --"
+                value={0}
+                color="#000"
+              />
+
               {speciesList
                 .filter((s) =>
                   s.name.toLowerCase().includes(speciesSearch.toLowerCase()),
@@ -653,6 +664,7 @@ export default function CharactersScreen() {
                     key={species.id}
                     label={`${species.name} (#${species.id})`}
                     value={species.id}
+                    color="#000"
                   />
                 ))}
             </Picker>

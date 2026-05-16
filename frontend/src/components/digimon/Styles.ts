@@ -186,6 +186,7 @@ export const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 4,
     marginBottom: 12,
+    color: "#000",
   },
 
   row: {

@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/digimasteryLogo.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.carlosrm022.digimastery"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "50c5053c-f953-4a45-a127-8ff274aad1e4"
+      }
     }
   }
 }

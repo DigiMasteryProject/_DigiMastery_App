@@ -1,15 +1,22 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+########################################
+# DEPENDENCIES
+########################################
 node_modules/
 
-# Expo
+########################################
+# EXPO
+########################################
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+########################################
+# NATIVE / BUILD
+########################################
+ios/
+android/
 .kotlin/
 *.orig.*
 *.jks
@@ -18,26 +25,46 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
+########################################
+# METRO / DEBUG
+########################################
 .metro-health-check*
-
-# debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
+########################################
+# ENV FILES
+########################################
+.env
+.env.*
 .env*.local
 
-# typescript
+########################################
+# TYPESCRIPT
+########################################
 *.tsbuildinfo
 
-app-example
+########################################
+# OS FILES (IMPORTANT FIX)
+########################################
+.DS_Store
+Thumbs.db
+Desktop.ini
 
-# generated native folders
-/ios
-/android
+# 🔥 WINDOWS / SYSTEM JUNK (CRITICAL FOR TU ERROR)
+AppData/
+**/AppData/
+appdata/
+**/appdata/
+
+# Firefox / browser cache (MUY IMPORTANTE EN TU CASO)
+*.cache
+*.log
+*.tmp
+*.marker
+
+########################################
+# OPTIONAL CLEANUP
+########################################
+coverage/

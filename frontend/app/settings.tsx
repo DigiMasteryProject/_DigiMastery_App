@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Linking,
   Alert,
-    Platform
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,21 +22,22 @@ export default function OptionsScreen() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-   const getUserId = async () => {
-  try {
-    let userData =
-      Platform.OS === "web"
-        ? localStorage.getItem("user")
-        : await SecureStore.getItemAsync("user");
+  const getUserId = async () => {
+    try {
+      const userData =
+        Platform.OS === "web"
+          ? localStorage.getItem("user")
+          : await SecureStore.getItemAsync("user");
 
-    if (userData) {
-      const user = JSON.parse(userData);
-      setCurrentUser(user);
+      if (userData) {
+        const user = JSON.parse(userData);
+        setCurrentUser(user);
+      }
+    } catch (err) {
+      console.log("Error leyendo usuario:", err);
     }
-  } catch (err) {
-    console.log("Error leyendo usuario:", err);
-  }
-};
+  };
+
   const [userData, setUserData] = useState({
     username: "",
     email: "",
@@ -62,20 +63,17 @@ export default function OptionsScreen() {
       await api.put(`/user/${currentUser.id}`, payload);
 
       const updatedUser = {
-  ...currentUser,
-  ...payload,
-};
+        ...currentUser,
+        ...payload,
+      };
 
-setCurrentUser(updatedUser);
+      setCurrentUser(updatedUser);
 
-if (Platform.OS === "web") {
-  localStorage.setItem("user", JSON.stringify(updatedUser));
-} else {
-  await SecureStore.setItemAsync(
-    "user",
-    JSON.stringify(updatedUser)
-  );
-}
+      if (Platform.OS === "web") {
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      } else {
+        await SecureStore.setItemAsync("user", JSON.stringify(updatedUser));
+      }
 
       Alert.alert("OK", "User updated successfully");
       setUserModal(false);
@@ -85,108 +83,109 @@ if (Platform.OS === "web") {
       Alert.alert("Error", "Could not update user");
     }
   };
-  
- const logout = async () => {
-  try {
-    // Mobile (SecureStore)
-    if (Platform.OS !== "web") {
-      await SecureStore.deleteItemAsync("user");
-      await SecureStore.deleteItemAsync("token");
-    }
 
-    // Web (localStorage)
-    if (Platform.OS === "web") {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-    }
+  const logout = async () => {
+    try {
+      // Mobile (SecureStore)
+      if (Platform.OS !== "web") {
+        await SecureStore.deleteItemAsync("user");
+        await SecureStore.deleteItemAsync("token");
+      }
 
-    router.replace("/login");
-  } catch (err) {
-    console.log("Logout error:", err);
-  }
-};
+      // Web (localStorage)
+      if (Platform.OS === "web") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
+
+      router.replace("/login");
+    } catch (err) {
+      console.log("Logout error:", err);
+    }
+  };
+
   // 🔹 MANUAL DOWNLOAD
   const openManual = () => {
-    const url = "https://drive.google.com/drive/folders/1PlcshWeGZwb2xomqtINILsTS5wm3UQOz?usp=sharing";
+    const url =
+      "https://drive.google.com/drive/folders/1PlcshWeGZwb2xomqtINILsTS5wm3UQOz?usp=sharing";
     Linking.openURL(url);
   };
 
   // 🔹 SEND SUGGESTION EMAIL
-const sendSuggestion = async () => {
-  try {
-    if (!suggestion) return;
+  const sendSuggestion = async () => {
+    try {
+      if (!suggestion) return;
 
-    if (!currentUser) {
-      Alert.alert("Error", "User not loaded");
-      return;
+      if (!currentUser) {
+        Alert.alert("Error", "User not loaded");
+        return;
+      }
+
+      console.log("Sending suggestion:", {
+        from: currentUser.email,
+        username: currentUser.username,
+        userId: currentUser.id,
+        message: suggestion,
+      });
+
+      await api.post("/suggestions", {
+        from: currentUser.email,
+        username: currentUser.username,
+        userId: currentUser.id,
+        message: suggestion,
+      });
+
+      Alert.alert("Sent", "Suggestion sent successfully");
+
+      setSuggestion("");
+      setSuggestionModal(false);
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Error", "Could not send suggestion");
     }
+  };
 
-    console.log("Sending suggestion:", {
-      from: currentUser.email,
-      username: currentUser.username,
-      userId: currentUser.id,
-      message: suggestion,
-    });
-
-    await api.post("/suggestions", {
-      from: currentUser.email,
-      username: currentUser.username,
-      userId: currentUser.id,
-      message: suggestion,
-    });
-
-    Alert.alert("Sent", "Suggestion sent successfully");
-
-    setSuggestion("");
-    setSuggestionModal(false);
-
-  } catch (err) {
-    console.log(err);
-    Alert.alert("Error", "Could not send suggestion");
-  }
-};
   useEffect(() => {
-  getUserId();
-}, []);
+    getUserId();
+  }, []);
 
   return (
-    <LinearGradient colors={["#0a0e1f", "#1a2342", "#2d3561"]} style={styles.container}>
-      
+    <LinearGradient
+      colors={["#0a0e1f", "#1a2342", "#2d3561"]}
+      style={styles.container}
+    >
       {/* TOPBAR */}
-<View
-  style={{
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-    backgroundColor: "#1e3a5f",
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: "#2a4563",
-  }}
->
-  <TouchableOpacity
-    onPress={() => router.back()}
-    style={{ flexDirection: "row", alignItems: "center" }}
-  >
-    <Feather name="arrow-left" size={18} color="#00d9ff" />
-    <Text style={{ color: "#00d9ff", marginLeft: 4, fontWeight: "bold" }}>
-      BACK
-    </Text>
-  </TouchableOpacity>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 20,
+          backgroundColor: "#1e3a5f",
+          padding: 10,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: "#2a4563",
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ flexDirection: "row", alignItems: "center" }}
+        >
+          <Feather name="arrow-left" size={18} color="#00d9ff" />
+          <Text style={{ color: "#00d9ff", marginLeft: 4, fontWeight: "bold" }}>
+            BACK
+          </Text>
+        </TouchableOpacity>
 
-  <View style={{ flex: 1, alignItems: "center" }}>
-    <Text style={styles.title}>OPTIONS</Text>
-  </View>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text style={styles.title}>OPTIONS</Text>
+        </View>
 
-  <View style={{ width: 60 }} />
-</View>
+        <View style={{ width: 60 }} />
+      </View>
 
       {/* 🔹 EDIT USER */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => setUserModal(true)}
-      >
+      <TouchableOpacity style={styles.button} onPress={() => setUserModal(true)}>
         <Feather name="user" size={18} color="#00d9ff" />
         <Text style={styles.buttonText}>EDIT USER</Text>
       </TouchableOpacity>
@@ -197,20 +196,22 @@ const sendSuggestion = async () => {
         <Text style={styles.buttonText}>DOWNLOAD MANUAL</Text>
       </TouchableOpacity>
 
-      {/* 🔹 SUGGESTIONS */}
+      {/* 🔹 SUGGESTIONS 
       <TouchableOpacity
         style={styles.button}
         onPress={() => setSuggestionModal(true)}
       >
         <Feather name="mail" size={18} color="#00d9ff" />
         <Text style={styles.buttonText}>SUGGESTIONS</Text>
+      </TouchableOpacity>*/}
+
+      <TouchableOpacity style={styles.button} onPress={logout}>
+        <Text style={styles.buttonText}>LOGOUT</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}
-  onPress={logout}
->
-  <Text style={styles.buttonText}>LOGOUT</Text>
-</TouchableOpacity>
+      <View style={{ alignItems: "center" }}>
+        <Text style={styles.title}>[ digimstrypct@gmail.com ]</Text>
+      </View>
 
       {/* ================= EDIT USER MODAL ================= */}
       <Modal visible={userModal} transparent animationType="slide">

@@ -723,35 +723,73 @@ const GROWTH_PHASES = [
           PARTNER DIGIMON
         </Text>
 
-        <Text style={styles.cardLabel}>Growth Phase</Text>
-
         <View
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 6,
-            marginBottom: 10,
+            flexDirection: "row",
+            gap: 12,
           }}
         >
-          <Picker
-            selectedValue={partnerPhase}
-            onValueChange={(value) => setPartnerPhase(value)}
-          >
-            {GROWTH_PHASES.map((phase) => (
-              <Picker.Item key={phase} label={phase} value={phase} />
-            ))}
-          </Picker>
+          {/* Growth Phase */}
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              Growth Phase
+            </Text>
+
+            <Picker
+              selectedValue={partnerPhase}
+              onValueChange={(value) => setPartnerPhase(value)}
+              style={{
+                backgroundColor: "#fff",
+                color: "#000",
+                borderRadius: 6,
+              }}
+              dropdownIconColor="#000"
+            >
+              {GROWTH_PHASES.map((phase) => (
+                <Picker.Item
+                  key={phase}
+                  label={phase}
+                  value={phase}
+                  color="#000"
+                />
+              ))}
+            </Picker>
+          </View>
+
+          {/* Level */}
+          <View style={{ width: 90 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              Lv.
+            </Text>
+
+            <TextInput
+              value={partnerLevel}
+              onChangeText={setPartnerLevel}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#777"
+              style={[
+                styles.input,
+                {
+                  marginBottom: 0,
+                  textAlign: "center",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                },
+              ]}
+            />
+          </View>
         </View>
-
-        <Text style={styles.cardLabel}>Lv.</Text>
-
-        <TextInput
-          value={partnerLevel}
-          onChangeText={setPartnerLevel}
-          keyboardType="numeric"
-          placeholder="0"
-          placeholderTextColor="#777"
-          style={styles.input}
-        />
       </View>
 
       {/* ================= ENEMY ================= */}
@@ -775,35 +813,73 @@ const GROWTH_PHASES = [
           DEFEATED DIGIMON
         </Text>
 
-        <Text style={styles.cardLabel}>Growth Phase</Text>
-
         <View
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 6,
-            marginBottom: 10,
+            flexDirection: "row",
+            gap: 12,
           }}
         >
-          <Picker
-            selectedValue={enemyPhase}
-            onValueChange={(value) => setEnemyPhase(value)}
-          >
-            {GROWTH_PHASES.map((phase) => (
-              <Picker.Item key={phase} label={phase} value={phase} />
-            ))}
-          </Picker>
+          {/* Growth Phase */}
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              Growth Phase
+            </Text>
+
+            <Picker
+              selectedValue={enemyPhase}
+              onValueChange={(value) => setEnemyPhase(value)}
+              style={{
+                backgroundColor: "#fff",
+                color: "#000",
+                borderRadius: 6,
+              }}
+              dropdownIconColor="#000"
+            >
+              {GROWTH_PHASES.map((phase) => (
+                <Picker.Item
+                  key={phase}
+                  label={phase}
+                  value={phase}
+                  color="#000"
+                />
+              ))}
+            </Picker>
+          </View>
+
+          {/* Level */}
+          <View style={{ width: 90 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              Lv.
+            </Text>
+
+            <TextInput
+              value={enemyLevel}
+              onChangeText={setEnemyLevel}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#777"
+              style={[
+                styles.input,
+                {
+                  marginBottom: 0,
+                  textAlign: "center",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                },
+              ]}
+            />
+          </View>
         </View>
-
-        <Text style={styles.cardLabel}>Lv.</Text>
-
-        <TextInput
-          value={enemyLevel}
-          onChangeText={setEnemyLevel}
-          keyboardType="numeric"
-          placeholder="0"
-          placeholderTextColor="#777"
-          style={styles.input}
-        />
       </View>
 
       {/* BUTTONS */}
@@ -862,59 +938,139 @@ const GROWTH_PHASES = [
           ATTACKER
         </Text>
 
-        <Text style={styles.cardLabel}>ATK / SPIRIT</Text>
-        <TextInput
-          value={attackerStat}
-          onChangeText={setAttackerStat}
-          keyboardType="numeric"
-          placeholder="0"
-          placeholderTextColor="#777"
-          style={styles.input}
-        />
-
-        <Text style={styles.cardLabel}>DMG Roll</Text>
-        <TextInput
-          value={attackerRoll}
-          onChangeText={setAttackerRoll}
-          keyboardType="numeric"
-          placeholder="0"
-          placeholderTextColor="#777"
-          style={styles.input}
-        />
-
-        <Text style={styles.cardLabel}>ATTR</Text>
+        {/* STATS */}
         <View
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 6,
-            marginBottom: 10,
+            flexDirection: "row",
+            gap: 12,
+            marginBottom: 12,
           }}
         >
-          <Picker
-            selectedValue={attackerAttr}
-            onValueChange={(value) => setAttackerAttr(value)}
-          >
-            {ATTRIBUTES.map((attr) => (
-              <Picker.Item key={attr} label={attr} value={attr} />
-            ))}
-          </Picker>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              ATK / SPIRIT
+            </Text>
+
+            <TextInput
+              value={attackerStat}
+              onChangeText={setAttackerStat}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#777"
+              style={[
+                styles.input,
+                {
+                  marginBottom: 0,
+                  textAlign: "center",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                },
+              ]}
+            />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              DMG Roll
+            </Text>
+
+            <TextInput
+              value={attackerRoll}
+              onChangeText={setAttackerRoll}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#777"
+              style={[
+                styles.input,
+                {
+                  marginBottom: 0,
+                  textAlign: "center",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                },
+              ]}
+            />
+          </View>
         </View>
 
-        <Text style={styles.cardLabel}>Elem</Text>
+        {/* ATTRIBUTES */}
         <View
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 6,
+            flexDirection: "row",
+            gap: 12,
           }}
         >
-          <Picker
-            selectedValue={attackerElem}
-            onValueChange={(value) => setAttackerElem(value)}
-          >
-            {ELEMENTS.map((elem) => (
-              <Picker.Item key={elem} label={elem} value={elem} />
-            ))}
-          </Picker>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              ATTR
+            </Text>
+
+            <Picker
+              selectedValue={attackerAttr}
+              onValueChange={(value) => setAttackerAttr(value)}
+              style={{
+                backgroundColor: "#fff",
+                color: "#000",
+                borderRadius: 6,
+              }}
+              dropdownIconColor="#000"
+            >
+              {ATTRIBUTES.map((attr) => (
+                <Picker.Item
+                  key={attr}
+                  label={attr}
+                  value={attr}
+                  color="#000"
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              Elem
+            </Text>
+
+            <Picker
+              selectedValue={attackerElem}
+              onValueChange={(value) => setAttackerElem(value)}
+              style={{
+                backgroundColor: "#fff",
+                color: "#000",
+                borderRadius: 6,
+              }}
+              dropdownIconColor="#000"
+            >
+              {ELEMENTS.map((elem) => (
+                <Picker.Item
+                  key={elem}
+                  label={elem}
+                  value={elem}
+                  color="#000"
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
       </View>
 
@@ -939,59 +1095,139 @@ const GROWTH_PHASES = [
           TARGET
         </Text>
 
-        <Text style={styles.cardLabel}>DEF / DEF-SPIRIT</Text>
-        <TextInput
-          value={targetStat}
-          onChangeText={setTargetStat}
-          keyboardType="numeric"
-          placeholder="0"
-          placeholderTextColor="#777"
-          style={styles.input}
-        />
-
-        <Text style={styles.cardLabel}>DEF Roll</Text>
-        <TextInput
-          value={targetRoll}
-          onChangeText={setTargetRoll}
-          keyboardType="numeric"
-          placeholder="0"
-          placeholderTextColor="#777"
-          style={styles.input}
-        />
-
-        <Text style={styles.cardLabel}>ATTR</Text>
+        {/* STATS */}
         <View
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 6,
-            marginBottom: 10,
+            flexDirection: "row",
+            gap: 12,
+            marginBottom: 12,
           }}
         >
-          <Picker
-            selectedValue={targetAttr}
-            onValueChange={(value) => setTargetAttr(value)}
-          >
-            {ATTRIBUTES.map((attr) => (
-              <Picker.Item key={attr} label={attr} value={attr} />
-            ))}
-          </Picker>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              DEF / SPIRIT
+            </Text>
+
+            <TextInput
+              value={targetStat}
+              onChangeText={setTargetStat}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#777"
+              style={[
+                styles.input,
+                {
+                  marginBottom: 0,
+                  textAlign: "center",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                },
+              ]}
+            />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              DEF Roll
+            </Text>
+
+            <TextInput
+              value={targetRoll}
+              onChangeText={setTargetRoll}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#777"
+              style={[
+                styles.input,
+                {
+                  marginBottom: 0,
+                  textAlign: "center",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                },
+              ]}
+            />
+          </View>
         </View>
 
-        <Text style={styles.cardLabel}>Elem</Text>
+        {/* ATTRIBUTES */}
         <View
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 6,
+            flexDirection: "row",
+            gap: 12,
           }}
         >
-          <Picker
-            selectedValue={targetElem}
-            onValueChange={(value) => setTargetElem(value)}
-          >
-            {ELEMENTS.map((elem) => (
-              <Picker.Item key={elem} label={elem} value={elem} />
-            ))}
-          </Picker>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              ATTR
+            </Text>
+
+            <Picker
+              selectedValue={targetAttr}
+              onValueChange={(value) => setTargetAttr(value)}
+              style={{
+                backgroundColor: "#fff",
+                color: "#000",
+                borderRadius: 6,
+              }}
+              dropdownIconColor="#000"
+            >
+              {ATTRIBUTES.map((attr) => (
+                <Picker.Item
+                  key={attr}
+                  label={attr}
+                  value={attr}
+                  color="#000"
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.cardLabel,
+                { marginBottom: 6, textAlign: "center" },
+              ]}
+            >
+              Elem
+            </Text>
+
+            <Picker
+              selectedValue={targetElem}
+              onValueChange={(value) => setTargetElem(value)}
+              style={{
+                backgroundColor: "#fff",
+                color: "#000",
+                borderRadius: 6,
+              }}
+              dropdownIconColor="#000"
+            >
+              {ELEMENTS.map((elem) => (
+                <Picker.Item
+                  key={elem}
+                  label={elem}
+                  value={elem}
+                  color="#000"
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
       </View>
 

@@ -17,6 +17,7 @@ import DigimonEditModal from "../src/components/digimon/DigimonEditModal";
 import StatBox from "../src/components/digimon/StatBox";
 import StatBox2 from "../src/components/digimon/StatBox2";
 import DigimonSkills from "@/src/components/digimon/DigimonSkills";
+import { Heart } from "lucide-react-native";
 
 export default function DigimonSheet() {
   const params = useLocalSearchParams<{ digimonId?: string }>();
@@ -162,6 +163,19 @@ export default function DigimonSheet() {
         <View style={{ flexDirection: "row" }}>
           <StatBox2 label="SPIRIT" value1={digimon.spirit} value2={digimon.spirit_evs} level={digimon.level} color="#90f" />
           <StatBox2 label="SPD" value1={digimon.speed} value2={digimon.speed_evs} level={digimon.level} color="#ff0" />
+        </View>
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
+          <View style={styles.card}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+              <Heart color="rgb(236, 22, 10)" size={14} />
+              <Text style={[styles.cardLabel, { marginLeft: 4 }]}>Friendship</Text>
+            </View>
+            <View style={styles.progressBarBackground}>
+              <View style={[styles.progressBarFill, { width: `${digimon.friendship}%` }]} />
+            </View>
+            <Text style={styles.progressText}>{digimon.friendship}%</Text>
+          </View>
         </View>
 
         {/* SKILLS (te faltaba esto) */}

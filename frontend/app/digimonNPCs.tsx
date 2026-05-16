@@ -409,9 +409,9 @@ export default function DigimonNPCsScreen() {
               onValueChange={(value) =>
                 setNewDigimon((d) => ({ ...d, id_digimon: Number(value) }))
               }
-              style={{ backgroundColor: "#fff", marginBottom: 12 }}
+              style={{ backgroundColor: "#fff", marginBottom: 12, color: "#000" }}
             >
-              <Picker.Item label="-- Select Species --" value={0} />
+              <Picker.Item label="-- Select Species --" value={0} color="#000" />
               {speciesList
                 .filter((s) =>
                   s.name.toLowerCase().includes(speciesSearch.toLowerCase())
@@ -421,6 +421,7 @@ export default function DigimonNPCsScreen() {
                     key={s.id}
                     label={`${s.name} (#${s.id})`}
                     value={s.id}
+                    color="#000"
                   />
                 ))}
             </Picker>
