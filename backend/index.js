@@ -54,16 +54,24 @@ app.use(express.urlencoded({ extended: true }));
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
+
   keyGenerator: (req) => {
     const forwarded = req.headers["x-forwarded-for"];
-    if (forwarded) {
+
+    // Railway / proxies
+    if (typeof forwarded === "string" && forwarded.length > 0) {
       return forwarded.split(",")[0].trim();
     }
-    return req.ip;
+
+    // fallback seguro
+    return req.ip || "unknown-ip";
   },
+
   standardHeaders: true,
   legacyHeaders: false,
+
   skip: (req) => req.method === "OPTIONS",
+
   message: {
     ok: false,
     mensaje: "Too many requests. Please try again later.",
