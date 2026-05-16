@@ -78,7 +78,15 @@ const limiter = rateLimit({
   },
 });
 
-app.use(limiter);
+const whitelistedRoutes = ["/digimon", "/partner_digimon", "/human", "/npc"];
+app.use((req, res, next) => {
+ const isWhitelisted = whitelistedRoutes.some(route => req.path.startsWith(route));
+ if (isWhitelisted) {
+ return next();
+ }
+ limiter(req, res, next);
+});
+
 
 /* =========================
    DEBUG MIDDLEWARE (MUY IMPORTANTE)
