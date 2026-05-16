@@ -5,10 +5,6 @@ const campaignAccess = async (req, res, next) => {
 
     let campaignId = null;
 
-    // ========================================
-    // 1. Obtener campaignId directo
-    // ========================================
-
     if (req.body?.id_campaign) {
       campaignId = req.body.id_campaign;
     }
@@ -25,58 +21,41 @@ const campaignAccess = async (req, res, next) => {
       campaignId = req.params.id_campaign;
     }
 
-    // ========================================
-    // 2. campaignData?uc_id=X
-    // ========================================
-
     else if (req.query?.uc_id) {
 
-      const uc = await userCampaignService.getUserCampaignById(
-        req.query.uc_id
-      );
+      const uc =
+        await userCampaignService.getUserCampaignById(
+          req.query.uc_id
+        );
 
       if (uc) {
         campaignId = uc.id_campaign;
       }
     }
-
-    // ========================================
-    // 3. DELETE /user_campaign/:id
-    // ========================================
 
     else if (req.params?.id) {
 
-      const uc = await userCampaignService.getUserCampaignById(
-        req.params.id
-      );
+      const uc =
+        await userCampaignService.getUserCampaignById(
+          req.params.id
+        );
 
       if (uc) {
         campaignId = uc.id_campaign;
       }
     }
-
-    // ========================================
-    // 4. Si no hay campaignId → continuar
-    // ========================================
 
     if (!campaignId) {
       return next();
     }
 
-    // ========================================
-    // 5. ADMIN siempre permitido
-    // ========================================
-
-   if (
-  req.user?.role &&
-  req.user.role.toUpperCase() === "ADMIN"
-) {
-  return next();
-}
-
-    // ========================================
-    // 6. Verificar pertenencia
-    // ========================================
+    // ✅ ADMIN bypass
+    if (
+      req.user?.role &&
+      String(req.user.role).toUpperCase() === "ADMIN"
+    ) {
+      return next();
+    }
 
     const access = await userCampaignService.getAll({
       id_campaign: campaignId,
@@ -89,6 +68,9 @@ const campaignAccess = async (req, res, next) => {
         mensaje: "No tienes acceso a esta campaña",
       });
     }
+
+    // ✅ MUY IMPORTANTE
+    req.userCampaign = access[0];
 
     next();
 
