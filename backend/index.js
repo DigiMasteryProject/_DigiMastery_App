@@ -52,8 +52,8 @@ app.use(express.urlencoded({ extended: true }));
    RATE LIMIT (RAILWAY SAFE)
 ========================= */
 const limiter = rateLimit({
-  windowMs: 30 * 60 * 1000,
-  max: 100000,
+  windowMs: 10 * 60 * 1000,
+  max: 50000,
 
   keyGenerator: (req) => {
     const forwarded = req.headers["x-forwarded-for"];
