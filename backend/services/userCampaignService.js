@@ -8,13 +8,13 @@ class UserCampaignService {
   async getAll(filters = {}) {
     const where = {};
 
-    // 🔥 FIX: evitar undefined que rompe Sequelize
+    // 🔥 FIX: evitar undefined/null y forzar tipos correctos (Sequelize + Railway)
     if (filters.id_campaign !== undefined && filters.id_campaign !== null) {
-      where.id_campaign = filters.id_campaign;
+      where.id_campaign = Number(filters.id_campaign);
     }
 
     if (filters.id_user !== undefined && filters.id_user !== null) {
-      where.id_user = filters.id_user;
+      where.id_user = Number(filters.id_user);
     }
 
     return await user_campaign.findAll({ where });
@@ -29,7 +29,11 @@ class UserCampaignService {
       throw new Error("Datos incompletos para crear user_campaign");
     }
 
-    return await user_campaign.create(datos);
+    return await user_campaign.create({
+      ...datos,
+      id_user: Number(datos.id_user),
+      id_campaign: Number(datos.id_campaign),
+    });
   }
 
   async updateUserCampaign(id, datos) {
