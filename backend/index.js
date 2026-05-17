@@ -52,7 +52,7 @@ app.use(express.urlencoded({ extended: true }));
    RATE LIMIT (RAILWAY SAFE)
 ========================= */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 10 * 60 * 1000,
   max: 50000,
 
   keyGenerator: (req) => {
@@ -80,11 +80,11 @@ const limiter = rateLimit({
 
 const whitelistedRoutes = ["/digimon", "/partner_digimon", "/human", "/npc"];
 app.use((req, res, next) => {
- const isWhitelisted = whitelistedRoutes.some(route => req.path.startsWith(route));
+ const isWhitelisted = whitelistedRoutes.some(route => req.path === route || req.path.startsWith(route + "/"));
  if (isWhitelisted) {
  return next();
  }
- limiter(req, res, next);
+limiter(req, res, next);
 });
 
 
@@ -95,7 +95,10 @@ app.use((req, res, next) => {
   console.log(`➡️ ${req.method} ${req.url}`);
   next();
 });
-
+app.use((req, res, next) => {
+  console.log("RATE CHECK:", req.method, req.path, req.ip);
+  next();
+});
 /* =========================
    MODELS
 ========================= */

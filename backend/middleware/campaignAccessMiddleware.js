@@ -2,85 +2,20 @@ const userCampaignService = require("../services/userCampaignService");
 
 const campaignAccess = async (req, res, next) => {
   try {
+    const campaignId =
+      req.body?.id_campaign ||
+      req.query?.id_campaign ||
+      req.params?.id_campaign ||
+      req.params?.id ||
+      req.query?.campaign;
 
-    let campaignId = null;
+    if (!campaignId) return next();
 
-    // ========================================
-    // 1. Obtener campaignId directo
-    // ========================================
-
-    if (req.body?.id_campaign) {
-      campaignId = req.body.id_campaign;
-    }
-
-    else if (req.query?.id_campaign) {
-      campaignId = req.query.id_campaign;
-    }
-
-    else if (req.query?.campaign) {
-      campaignId = req.query.campaign;
-    }
-
-    else if (req.params?.id_campaign) {
-      campaignId = req.params.id_campaign;
-    }
-
-    // ========================================
-    // 2. campaignData?uc_id=X
-    // ========================================
-
-    else if (req.query?.uc_id) {
-
-      const uc = await userCampaignService.getUserCampaignById(
-        req.query.uc_id
-      );
-
-      if (uc) {
-        campaignId = uc.id_campaign;
-      }
-    }
-
-    // ========================================
-    // 3. DELETE /user_campaign/:id
-    // ========================================
-
-    else if (req.params?.id) {
-
-      const uc = await userCampaignService.getUserCampaignById(
-        req.params.id
-      );
-
-      if (uc) {
-        campaignId = uc.id_campaign;
-      }
-    }
-
-    // ========================================
-    // 4. Si no hay campaignId → continuar
-    // ========================================
-
-    if (!campaignId) {
-      return next();
-    }
-
-    // ========================================
-    // 5. ADMIN siempre permitido
-    // ========================================
-
-   if (
-  req.user?.role &&
-  req.user.role.toUpperCase() === "ADMIN"
-) {
-  return next();
-}
-
-    // ========================================
-    // 6. Verificar pertenencia
-    // ========================================
+    if (req.user?.role?.toUpperCase() === "ADMIN") return next();
 
     const access = await userCampaignService.getAll({
-      id_campaign: campaignId,
-      id_user: req.user.id,
+      id_campaign: Number(campaignId),
+      id_user: Number(req.user.id),
     });
 
     if (!access || access.length === 0) {
@@ -90,16 +25,11 @@ const campaignAccess = async (req, res, next) => {
       });
     }
 
+    req.userCampaign = access[0];
     next();
-
   } catch (err) {
-
     console.log("campaignAccess error:", err);
-
-    return res.status(500).json({
-      ok: false,
-      mensaje: "Error interno",
-    });
+    return res.status(500).json({ ok: false, mensaje: "Error interno" });
   }
 };
 

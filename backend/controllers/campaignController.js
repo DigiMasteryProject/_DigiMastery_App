@@ -28,7 +28,7 @@ class CampaignController {
 
       // 2. asignar DM automáticamente
       await userCampaignService.createUserCampaign({
-        id_user,
+        id_user: req.user.id,
         id_campaign: campaign.id,
         role: "DM",
       });
