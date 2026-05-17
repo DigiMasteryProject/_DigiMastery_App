@@ -184,6 +184,7 @@ const [newPassword, setNewPassword] = useState("");
         <TextInput
           placeholder="PASSWORD"
           placeholderTextColor="#00d9ff"
+          autoCapitalize="none"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -194,6 +195,7 @@ const [newPassword, setNewPassword] = useState("");
           <TextInput
             placeholder="CONFIRM PASSWORD"
             placeholderTextColor="#00d9ff"
+            autoCapitalize="none"
             secureTextEntry
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -224,6 +226,7 @@ const [newPassword, setNewPassword] = useState("");
       <TextInput
         placeholder="EMAIL"
         placeholderTextColor="#00d9ff"
+        autoCapitalize="none"
         value={resetEmail}
         onChangeText={setResetEmail}
         style={styles.input}
@@ -232,6 +235,7 @@ const [newPassword, setNewPassword] = useState("");
       <TextInput
         placeholder="NEW PASSWORD"
         placeholderTextColor="#00d9ff"
+        autoCapitalize="none"
         secureTextEntry
         value={newPassword}
         onChangeText={setNewPassword}

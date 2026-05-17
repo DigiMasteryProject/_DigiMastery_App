@@ -1,23 +1,24 @@
-import React, { useEffect, useState } from "react";
+import { Feather } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
-  View,
+  Alert,
+  Button,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Button,
-  FlatList,
-  Alert,
-  Platform,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import * as SecureStore from "expo-secure-store";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { useGameData } from "../src/contexts/GameDataContext";
 import api from "../src/services/api";
 
 interface UserCampaign {
@@ -25,7 +26,7 @@ interface UserCampaign {
   id_user: number;
   id_campaign: number;
   human_sheet?: { name: string };
-  partner_digimon?: { nickname: string; id_digimon?: { name: string } };
+  partner_digimon?: { nickname: string; species: number };
   observations?: string;
   role?: string;
   campaign?: Campaign;
@@ -56,6 +57,7 @@ export default function CampaignsScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [allUserCampaigns, setAllUserCampaigns] = useState<UserCampaign[]>([]);
   const [campaignPlayers, setCampaignPlayers] = useState<UserCampaign[]>([]);
+  const { digimonMap } = useGameData();
 
   const getUserId = async () => {
     try {
@@ -79,208 +81,220 @@ export default function CampaignsScreen() {
   };
 
   const fetchUserCampaigns = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const data = await api.get("/user_campaign");
-    const allCampaigns: UserCampaign[] = data.datos || [];
+      const data = await api.get("/user_campaign");
+      const allCampaigns: UserCampaign[] = data.datos || [];
 
-    const enrichedCampaigns = await Promise.all(
-      allCampaigns.map(async (uc) => {
-        const newUC = { ...uc };
+      const enrichedCampaigns = await Promise.all(
+        allCampaigns.map(async (uc) => {
+          const newUC = { ...uc };
 
-        // HUMAN
-        if (uc.human_sheet) {
-          try {
-            const res = await api.get(`/human/${uc.human_sheet}`);
-            newUC.human_sheet = res.datos || { name: "-" };
-          } catch {
-            newUC.human_sheet = { name: "-" };
+          // HUMAN
+          if (uc.human_sheet) {
+            try {
+              const res = await api.get(`/human/${uc.human_sheet}`);
+              newUC.human_sheet = res.datos || { name: "-" };
+            } catch {
+              newUC.human_sheet = { name: "-" };
+            }
           }
-        }
 
-        if (uc.partner_digimon) {
+          if (uc.partner_digimon) {
+            try {
+              const resPartner = await api.get(
+                `/partner_digimon/${uc.partner_digimon}`,
+              );
+
+              const partner = resPartner.datos || {
+                nickname: "-",
+                id_digimon: null,
+              };
+
+              // 👇 guardamos SOLO el ID de especie
+              partner.species = partner.id_digimon || null;
+
+              newUC.partner_digimon = partner;
+            } catch {
+              newUC.partner_digimon = {
+                nickname: "-",
+                species: 0,
+              };
+            }
+          }
+
+          // CAMPAIGN
+          if (uc.id_campaign) {
+            try {
+              const res = await api.get(`/campaign/${uc.id_campaign}`);
+              newUC.campaign = res.datos || { id: uc.id_campaign };
+            } catch {
+              newUC.campaign = { id: uc.id_campaign };
+            }
+          }
           try {
-            const res = await api.get(`/partner_digimon/${uc.partner_digimon}`);
-            const partner = res.datos || { nickname: "-", id_digimon: null };
+            const userId = uc.id_user;
 
-            if (partner.id_digimon) {
-              try {
-                const digimonRes = await api.get(
-                  `/digimon/${partner.id_digimon}`
-                );
-                partner.id_digimon = digimonRes.datos || { name: "-" };
-              } catch {
+            const res = await api.get(`/user/${userId}`);
+
+            newUC.user = {
+              name: res.datos?.name || res.datos?.username || "-",
+            };
+          } catch {
+            newUC.user = { name: "-" };
+          }
+          return newUC;
+        }),
+      );
+
+      setUserCampaigns(enrichedCampaigns);
+      setAllUserCampaigns(enrichedCampaigns);
+    } catch (error: any) {
+      console.log(error);
+      showAlert("Error", error?.mensaje || "Error cargando campañas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCampaignPlayers = async (id_campaign: number) => {
+    try {
+      const res = await api.get(`/user_campaign?campaign=${id_campaign}`);
+      const players = res.datos || [];
+
+      const enriched = await Promise.all(
+        players.map(async (uc: UserCampaign) => {
+          const newUC = { ...uc };
+
+          // 👤 USER
+          try {
+            const resUser = await api.get(`/user/${uc.id_user}`);
+            newUC.user = {
+              name: resUser.datos?.name || resUser.datos?.username || "-",
+            };
+          } catch {
+            newUC.user = { name: "-" };
+          }
+
+          // 🧠 HUMAN (ESTO TE FALTABA)
+          if (uc.human_sheet) {
+            try {
+              const resHuman = await api.get(`/human/${uc.human_sheet}`);
+              newUC.human_sheet = resHuman.datos || { name: "-" };
+            } catch {
+              newUC.human_sheet = { name: "-" };
+            }
+          }
+
+          // 🐉 PARTNER DIGIMON (también importante mantenerlo consistente)
+          if (uc.partner_digimon) {
+            try {
+              const resPartner = await api.get(
+                `/partner_digimon/${uc.partner_digimon}`,
+              );
+              const partner = resPartner.datos || {
+                nickname: "-",
+                id_digimon: null,
+              };
+
+              if (partner.id_digimon) {
+                try {
+                  partner.species = partner.id_digimon || null;
+                  delete partner.id_digimon;
+                } catch {
+                  partner.id_digimon = { name: "-" };
+                }
+              } else {
                 partner.id_digimon = { name: "-" };
               }
-            } else {
-              partner.id_digimon = { name: "-" };
+
+              newUC.partner_digimon = partner;
+            } catch {
+              newUC.partner_digimon = {
+                nickname: "-",
+                id_digimon: { name: "-" },
+              };
             }
-
-            newUC.partner_digimon = partner;
-          } catch {
-            newUC.partner_digimon = {
-              nickname: "-",
-              id_digimon: { name: "-" },
-            };
           }
-        }
 
-        // CAMPAIGN
-        if (uc.id_campaign) {
-          try {
-            const res = await api.get(`/campaign/${uc.id_campaign}`);
-            newUC.campaign = res.datos || { id: uc.id_campaign };
-          } catch {
-            newUC.campaign = { id: uc.id_campaign };
-          }
-        }
-        try {
-  const userId = uc.id_user;
+          return newUC;
+        }),
+      );
 
-  const res = await api.get(`/user/${userId}`);
-
-    newUC.user = {
-      name: res.datos?.name || res.datos?.username || "-"
-    };
-} catch {
-  newUC.user = { name: "-" };
-}
-        return newUC;
-      })
-    );
-
-    setUserCampaigns(enrichedCampaigns);
-    setAllUserCampaigns(enrichedCampaigns);
-
-  } catch (error: any) {
-    console.log(error);
-    showAlert("Error", error?.mensaje || "Error cargando campañas");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const fetchCampaignPlayers = async (id_campaign: number) => {
-  try {
-    const res = await api.get(`/user_campaign?campaign=${id_campaign}`);
-    const players = res.datos || [];
-
-    const enriched = await Promise.all(
-      players.map(async (uc: UserCampaign) => {
-        const newUC = { ...uc };
-
-        // 👤 USER
-        try {
-          const resUser = await api.get(`/user/${uc.id_user}`);
-          newUC.user = {
-            name: resUser.datos?.name || resUser.datos?.username || "-"
-          };
-        } catch {
-          newUC.user = { name: "-" };
-        }
-
-        // 🧠 HUMAN (ESTO TE FALTABA)
-        if (uc.human_sheet) {
-          try {
-            const resHuman = await api.get(`/human/${uc.human_sheet}`);
-            newUC.human_sheet = resHuman.datos || { name: "-" };
-          } catch {
-            newUC.human_sheet = { name: "-" };
-          }
-        }
-
-        // 🐉 PARTNER DIGIMON (también importante mantenerlo consistente)
-        if (uc.partner_digimon) {
-          try {
-            const resPartner = await api.get(`/partner_digimon/${uc.partner_digimon}`);
-            const partner = resPartner.datos || { nickname: "-", id_digimon: null };
-
-            if (partner.id_digimon) {
-              try {
-                const digimonRes = await api.get(`/digimon/${partner.id_digimon}`);
-                partner.id_digimon = digimonRes.datos || { name: "-" };
-              } catch {
-                partner.id_digimon = { name: "-" };
-              }
-            } else {
-              partner.id_digimon = { name: "-" };
-            }
-
-            newUC.partner_digimon = partner;
-          } catch {
-            newUC.partner_digimon = {
-              nickname: "-",
-              id_digimon: { name: "-" }
-            };
-          }
-        }
-
-        return newUC;
-      })
-    );
-
-    setCampaignPlayers(enriched);
-  } catch (err) {
-    console.log("Error fetching players:", err);
-    setCampaignPlayers([]);
-  }
-};
- const openPlayersModal = async (id_campaign: number) => {
-  await fetchCampaignPlayers(id_campaign);
-  setModalVisible(true);
-};
+      setCampaignPlayers(enriched);
+    } catch (err) {
+      console.log("Error fetching players:", err);
+      setCampaignPlayers([]);
+    }
+  };
+  const openPlayersModal = async (id_campaign: number) => {
+    await fetchCampaignPlayers(id_campaign);
+    setModalVisible(true);
+  };
   const openCreateModal = () => {
     setCreateVisible(true);
   };
 
- const saveCampaign = async () => {
-  try {
-    const res = await api.post("/campaign", {
-      ...newCampaign,
-      id_user: currentUserId, // 🔥 CLAVE
-    });
+  const saveCampaign = async () => {
+    try {
+      const res = await api.post("/campaign", {
+        ...newCampaign,
+        id_user: currentUserId, // 🔥 CLAVE
+      });
 
-    const createdCampaign = res?.datos ?? res?.data;
+      const createdCampaign = res?.datos ?? res?.data;
 
-    const campaignId = createdCampaign?.id;
+      const campaignId = createdCampaign?.id;
 
-    if (!campaignId) {
-      throw new Error("No se pudo obtener el ID de la campaña");
+      if (!campaignId) {
+        throw new Error("No se pudo obtener el ID de la campaña");
+      }
+
+      setCreateVisible(false);
+      fetchUserCampaigns();
+    } catch (err) {
+      console.log("Error al guardar campaña:", err);
     }
-
-    setCreateVisible(false);
-    fetchUserCampaigns();
-
-  } catch (err) {
-    console.log("Error al guardar campaña:", err);
-  }
-};
- useEffect(() => {
-  const init = async () => {
-    await getUserId();
   };
-  init();
-}, []);
+  useEffect(() => {
+    const init = async () => {
+      await getUserId();
+    };
+    init();
+  }, []);
 
-useEffect(() => {
-  if (currentUserId !== null) {
-    fetchUserCampaigns();
-  }
-}, [currentUserId]);
+  useEffect(() => {
+    if (currentUserId !== null) {
+      fetchUserCampaigns();
+    }
+  }, [currentUserId]);
 
   const renderCampaignCard = ({ item }: { item: UserCampaign }) => {
     const camp = item.campaign;
+    const speciesName =
+      digimonMap[item.partner_digimon?.species || 0]?.name || "-";
 
     const totalPlayers = allUserCampaigns.filter(
       (uc) => uc.id_campaign === item.id_campaign,
     ).length;
 
     return (
-
       <TouchableOpacity
         activeOpacity={0.8} // efecto visual al pulsar
-        onPress={() => router.push(item.role === "DM" ? { pathname: `/campaignControlPanel`, params: { id_campaign: item?.id_campaign.toString() || "0" } } : { pathname: `/campaignData`, params: { uc_id: item?.id_uc?.toString() || "0" } })}
+        onPress={() =>
+          router.push(
+            item.role === "DM"
+              ? {
+                  pathname: `/campaignControlPanel`,
+                  params: { id_campaign: item?.id_campaign.toString() || "0" },
+                }
+              : {
+                  pathname: `/campaignData`,
+                  params: { uc_id: item?.id_uc?.toString() || "0" },
+                },
+          )
+        }
         style={{
           backgroundColor: "#1e3a5f",
           borderWidth: 2,
@@ -315,7 +329,7 @@ useEffect(() => {
               textAlign: "center",
             }}
           >
-            {camp.name || "-"}
+            {camp?.name || "-"}
           </Text>
         </View>
         <View
@@ -384,8 +398,7 @@ useEffect(() => {
             PARTNER
           </Text>
           <Text style={{ color: "#fff", fontSize: 12 }}>
-            {item.partner_digimon?.nickname || "-"} (
-            {item.partner_digimon?.id_digimon?.name || "-"})
+            {item.partner_digimon?.nickname || "-"} ({speciesName})
           </Text>
         </View>
 
@@ -494,7 +507,7 @@ useEffect(() => {
       </View>
 
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-      {/* 
+        {/* 
 
       JOIN CAMPAING disabled for now, future implementation: user will input a code
       provided by the DM to join an existing campaign. For now, campaigns can only be created
@@ -590,7 +603,8 @@ useEffect(() => {
                   key={i}
                   style={{ color: "#fff", fontSize: 14, marginBottom: 6 }}
                 >
-                  {p.user?.name || "-"} {p.human_sheet?.name || ""} ({p.role || "Player"})
+                  {p.user?.name || "-"} {p.human_sheet?.name || ""} (
+                  {p.role || "Player"})
                 </Text>
               ))}
             </ScrollView>
@@ -648,9 +662,7 @@ useEffect(() => {
               }}
             >
               <View style={{ flex: 1, marginRight: 6 }}>
-                <Text style={styles.cardLabel}>
-                  Campaign Name
-                </Text>
+                <Text style={styles.cardLabel}>Campaign Name</Text>
                 <TextInput
                   placeholder="Campaign Name"
                   value={newCampaign.name}
@@ -667,60 +679,60 @@ useEffect(() => {
             </View>
 
             {Platform.OS === "web" ? (
-  <input
-    type="date"
-    value={newCampaign.next_session || ""}
-    onChange={(e) =>
-      setNewCampaign((d) => ({
-        ...d,
-        next_session: e.target.value,
-      }))
-    }
-    style={{
-      marginBottom: 12,
-      padding: 8,
-      borderRadius: 4,
-      border: "none",
-    }}
-  />
-) : (
-  <>
-    <TouchableOpacity
-      onPress={() => setShowDatePicker(true)}
-      style={{
-        backgroundColor: "#fff",
-        marginBottom: 12,
-        padding: 8,
-        borderRadius: 4,
-      }}
-    >
-      <Text>
-        {newCampaign.next_session
-          ? newCampaign.next_session
-          : "Select date"}
-      </Text>
-    </TouchableOpacity>
+              <input
+                type="date"
+                value={newCampaign.next_session || ""}
+                onChange={(e) =>
+                  setNewCampaign((d) => ({
+                    ...d,
+                    next_session: e.target.value,
+                  }))
+                }
+                style={{
+                  marginBottom: 12,
+                  padding: 8,
+                  borderRadius: 4,
+                  border: "none",
+                }}
+              />
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(true)}
+                  style={{
+                    backgroundColor: "#fff",
+                    marginBottom: 12,
+                    padding: 8,
+                    borderRadius: 4,
+                  }}
+                >
+                  <Text>
+                    {newCampaign.next_session
+                      ? newCampaign.next_session
+                      : "Select date"}
+                  </Text>
+                </TouchableOpacity>
 
-    {showDatePicker && (
-      <DateTimePicker
-        value={selectedDate}
-        mode="date"
-        display="default"
-        onChange={(event, date) => {
-          setShowDatePicker(false);
-          if (date) {
-            setSelectedDate(date);
-            const formatted = date.toISOString().split("T")[0];
-            setNewCampaign((d) => ({
-              ...d,
-              next_session: formatted,
-            }));
-          }
-        }}
-      />
-    )}
-  </>
-)}
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowDatePicker(false);
+                      if (date) {
+                        setSelectedDate(date);
+                        const formatted = date.toISOString().split("T")[0];
+                        setNewCampaign((d) => ({
+                          ...d,
+                          next_session: formatted,
+                        }));
+                      }
+                    }}
+                  />
+                )}
+              </>
+            )}
 
             {showDatePicker && (
               <DateTimePicker

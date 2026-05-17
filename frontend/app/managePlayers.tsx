@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import api from "../src/services/api";
+import {useGameData} from "../src/contexts/GameDataContext";
 
 interface Campaign {
   id: number;
@@ -47,6 +48,7 @@ export default function CharactersScreen() {
   const [searching, setSearching] = useState(false);
   const [emblemModalVisible, setEmblemModalVisible] = useState(false);
 const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+const { digimonMap } = useGameData();
 const [selectedEmblem, setSelectedEmblem] = useState("Courage");
 
 const EMBLEMS = [
@@ -85,8 +87,8 @@ const EMBLEMS = [
 
     if (other.id_digimon) {
       try {
-        const speciesRes = await api.get(`/digimon/${other.id_digimon}`);
-        species = speciesRes?.datos || null;
+        const speciesRes = digimonMap[other.id_digimon];
+        species = speciesRes;
       } catch (err) {
         console.log("Error loading species:", err);
       }

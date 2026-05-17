@@ -17,6 +17,7 @@ import api from "../src/services/api";
 import useAdminGuard from "../src/hooks/useAdminGuard";
 import { LinearGradient } from "expo-linear-gradient";
 import { Picker } from "@react-native-picker/picker";
+import { useGameData } from "../src/contexts/GameDataContext";
 
 interface User {
   id: number;
@@ -36,7 +37,6 @@ export default function AdminScreen() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [createVisible, setCreateVisible] = useState(false);
   const [createHumanVisible, setCreateHumanVisible] = useState(false);
-  const [speciesList, setSpeciesList] = useState<any[]>([]);
   const [speciesSearch, setSpeciesSearch] = useState("");
   const [newDigimon, setNewDigimon] = useState({
     level: 1,
@@ -60,6 +60,10 @@ export default function AdminScreen() {
   const router = useRouter();
 
    const loading = useAdminGuard();
+   const {
+  digimonMap,
+  digimon,
+} = useGameData();
 
   const fetchUsers = async () => {
     try {
@@ -70,58 +74,64 @@ export default function AdminScreen() {
     }
   };
 
-  const fetchSpeciesList = async () => {
-    try {
-      const res = await api.get("/digimon");
-      setSpeciesList(res.datos || []);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+ const fetchNpcs = async () => {
+  try {
+    const res = await api.get("/npc/campaign/1");
+    const npcList = res.datos || [];
 
-  const fetchNpcs = async () => {
-    try {
-      const res = await api.get("/npc/campaign/1");
-      const npcList = res.datos || [];
-      const enrichedNpcs = await Promise.all(
-        npcList.map(async (npc: any) => {
-          let human = null;
-          let partner = null;
-          if (npc.id_human) {
-            try {
-              const humanRes = await api.get(`/human/${npc.id_human}`);
-              human = humanRes.datos;
-            } catch {}
-          }
-          if (npc.id_digimon) {
-            try {
-              const digiRes = await api.get(`/other_digimon/${npc.id_digimon}`);
-              partner = digiRes.datos;
-              if (partner?.id_digimon) {
-                const speciesRes = await api.get(`/digimon/${partner.id_digimon}`);
-                partner.id_digimon = speciesRes.datos;
-              }
-            } catch {}
-          }
-          return {
-            ...npc,
-            id_human: human,
-            id_digimon: partner,
-          };
-        })
-      );
-      setNpcs(enrichedNpcs);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+    const enrichedNpcs = await Promise.all(
+      npcList.map(async (npc: any) => {
+        let human = null;
+        let digimon = null;
 
+        // HUMAN
+        if (npc.id_human) {
+          try {
+            const humanRes = await api.get(`/human/${npc.id_human}`);
+            human = humanRes.datos;
+          } catch {}
+        }
+
+        // DIGIMON CHAIN
+        if (npc.id_digimon) {
+          try {
+            const resDig = await api.get(`/other_digimon/${npc.id_digimon}`);
+            const instance = resDig.datos;
+
+            const speciesId = Number(instance?.id_digimon);
+            const species = digimonMap[(speciesId)] ?? null;;
+
+            digimon = {
+              instance,
+              species,
+            };
+            
+          } catch {}
+        }
+
+        return {
+          ...npc,
+          human,
+          digimon,
+        };
+      })
+    );
+
+    setNpcs(enrichedNpcs);
+  } catch (err) {
+    console.log(err);
+  }
+};
  
   useEffect(() => {
     fetchUsers();
-    fetchNpcs();
-    fetchSpeciesList();
   }, []);
+
+  useEffect(() => {
+    if(digimon.length > 0) {
+      fetchNpcs();
+    }
+  }, [digimon]);
 
   const toggleBan = async (user: User) => {
     try {
@@ -223,11 +233,11 @@ export default function AdminScreen() {
     const s = npcSearch.toLowerCase();
     const human = n.id_human?.name?.toLowerCase() || "";
     const digimon = n.id_digimon?.nickname?.toLowerCase() || "";
-    const species = n.id_digimon?.id_digimon?.name?.toLowerCase() || "";
+    const species = n.digimon?.species?.name?.toLowerCase() || "";
     return human.includes(s) || digimon.includes(s) || species.includes(s);
   });
 
-  const filteredSpecies = speciesList.filter((s) =>
+  const filteredSpecies = digimon.filter((s) =>
     s.name.toLowerCase().includes(speciesSearch.toLowerCase())
   );
 
@@ -319,45 +329,52 @@ export default function AdminScreen() {
               <View style={styles.userCard}>
                 <TouchableOpacity
                   onPress={() => {
-                    if (item.id_human) {
-                      router.push({
-                        pathname: "/human",
-                        params: { humanId: item.id_human.id },
-                      });
-                    }
-                    if (item.id_digimon) {
-                      router.push({
-                        pathname: "/otherDigimonSheet",
-                        params: { digimonId: item.id_digimon.id },
-                      });
+                    if (item.human) {
+  router.push({
+    pathname: "/human",
+    params: { humanId: item.human.id },
+  });
+}
+                    if (item.digimon) {
+  router.push({
+    pathname: "/otherDigimonSheet",
+    params: { digimonId: item.digimon.id },
+  });
+
                     }
                   }}
                   style={styles.userCard}
                 >
-                  {item.id_human && (
-                    <>
-                      <Text style={styles.username}>
-                        👤 {item.id_human.name}
-                      </Text>
-                      <Text style={styles.email}>
-                        Archetype: {item.id_human.archetype || "-"}
-                      </Text>
-                    </>
-                  )}
-                  {item.id_digimon && (
-                    <>
-                      <Text style={styles.username}>
-                        🟢 {item.id_digimon.id_digimon?.name || "-"}
-                      </Text>
-                      <Text style={styles.email}>
-                        Growth Phase: {item.id_digimon.id_digimon?.growth_phase || "-"}
-                      </Text>
-                      <Text style={styles.email}>
-                        Attribute: {item.id_digimon.id_digimon?.attribute || "-"}{" "}
-                        Element: {item.id_digimon.id_digimon?.element || "-"}
-                      </Text>
-                    </>
-                  )}
+                  {item.human && (
+  <>
+    <Text style={styles.username}>
+      👤 {item.human.name || "-"}
+    </Text>
+
+    <Text style={styles.email}>
+      Archetype: {item.human.archetype || "-"}
+    </Text>
+  </>
+)}
+                 {item.digimon && (
+  <>
+    <Text style={styles.username}>
+      🟢 {item.digimon.species?.name ?? "Species ID " + item.digimon.instance?.id_digimon}
+    </Text>
+
+    <Text style={styles.email}>
+      Level: {item.digimon.instance?.level ?? "-"}
+    </Text>
+
+    <Text style={styles.email}>
+      EV ATK: {item.digimon.instance?.atk_ev ?? 0} | DEF: {item.digimon.instance?.def_ev ?? 0}
+    </Text>
+
+    <Text style={styles.email}>
+      SPD: {item.digimon.instance?.speed_ev ?? 0} | SPR: {item.digimon.instance?.spirit_ev ?? 0}
+    </Text>
+  </>
+)}
                 </TouchableOpacity>
               </View>
             )}
@@ -541,7 +558,7 @@ export default function AdminScreen() {
               }}
             >
               <Picker.Item label="-- Select Species --" value={0} />
-              {speciesList
+              {digimon
                 .filter((s) =>
                   s.name.toLowerCase().includes(speciesSearch.toLowerCase())
                 )

@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { getHumanArchetype } from "../src/components/human/HumanArchetypeCalc";
 import api from "../src/services/api";
+import { useGameData } from "../src/contexts/GameDataContext";
 
 interface UserCampaign {
   id: number;
@@ -62,20 +63,15 @@ interface Digimon {
   friendship?: number;
 }
 
-interface Species {
-  id: number;
-  name: string;
-}
-
 export default function CharactersScreen() {
   const router = useRouter();
   const [userCampaigns, setUserCampaigns] = useState<UserCampaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [digimonVisible, setDigimonVisible] = useState(false);
   const [humanVisible, setHumanVisible] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [speciesSearch, setSpeciesSearch] = useState("");
+  const { digimon, digimonMap } = useGameData();
   const [newDigimon, setNewDigimon] = useState({
     nickname: "",
     level: 1,
@@ -122,67 +118,55 @@ export default function CharactersScreen() {
     else Alert.alert(title, message);
   };
 
-  const fetchUserCharacters = async () => {
-    try {
-      setLoading(true);
+ const fetchUserCharacters = async () => {
+  try {
+    setLoading(true);
 
-      // 🔹 Traer humanos del usuario
-      const humansRes = await api.get(`/human?id_user=${currentUserId}`);
-      const humans = humansRes.datos || [];
+    const humansRes = await api.get(`/human?id_user=${currentUserId}`);
+    const humans = humansRes.datos || [];
 
-      // 🔹 Traer digimon del usuario
-      const digimonRes = await api.get(
-        `/partner_digimon?id_user=${currentUserId}`,
-      );
-      const digimons = digimonRes.datos || [];
+    const digimonRes = await api.get(
+      `/partner_digimon?id_user=${currentUserId}`
+    );
 
-      // 🔹 Enriquecer digimon con especie
-      for (let digi of digimons) {
-        if (digi.id_digimon) {
-          try {
-            const res = await api.get(`/digimon/${digi.id_digimon}`);
-            digi.id_digimon = res.datos || { name: "-" };
-          } catch (err) {
-            console.log("Error en getDigimonById:", err);
-            digi.id_digimon = { name: "-" };
-          }
-        }
-      }
+    const digimons = digimonRes.datos || [];
 
-      // 🔹 Convertimos al formato que ya usa tu UI
-      const formatted: UserCampaign[] = [
-        ...humans.map((h: any) => ({
-          id: `h-${h.id}`,
-          id_user: currentUserId,
-          id_campaign: 0,
-          human_sheet: h,
-        })),
-        ...digimons.map((d: any) => ({
-          id: `d-${d.id}`,
-          id_user: currentUserId,
-          id_campaign: 0,
-          partner_digimon: d,
-        })),
-      ];
+    const enrichedDigimons = digimons.map((d: any) => ({
+      ...d,
+      species: digimonMap?.[d.id_digimon] || {
+        name: "-",
+        attribute: "-",
+        element: "-",
+        growth_phase: "-",
+        health_points: 0,
+        skill_points: 0,
+        attack: 0,
+        defense: 0,
+        speed: 0,
+        spirit: 0,
+      },
+    }));
 
-      setUserCampaigns(formatted);
-    } catch (error: any) {
-      console.log(error);
-      showAlert("Error", error?.mensaje || "Error cargando personajes");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const formatted: UserCampaign[] = [
+      ...humans.map((h: any) => ({
+        id: `h-${h.id}`,
+        id_user: currentUserId,
+        id_campaign: 0,
+        human_sheet: h,
+      })),
+      ...enrichedDigimons.map((d: any) => ({
+        id: `d-${d.id}`,
+        id_user: currentUserId,
+        id_campaign: 0,
+        partner_digimon: d,
+      })),
+    ];
 
-  const fetchSpeciesList = async () => {
-    try {
-      const res = await api.get("/digimon");
-      setSpeciesList(res.datos || []);
-    } catch (err) {
-      console.log("Error fetching species:", err);
-      return [];
-    }
-  };
+    setUserCampaigns(formatted);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const openDigimonModal = () => {
     setDigimonVisible(true);
@@ -228,7 +212,6 @@ export default function CharactersScreen() {
     getUserId();
     if (currentUserId !== null) {
       fetchUserCharacters();
-      fetchSpeciesList();
     }
   }, [currentUserId]);
 
@@ -421,40 +404,40 @@ export default function CharactersScreen() {
                   style={{ color: "#00ff88", fontWeight: "bold", fontSize: 16 }}
                 >
                   {item.partner_digimon?.nickname || "-"} (
-                  {item.partner_digimon?.id_digimon?.name || "-"})
+                  {item.partner_digimon?.species?.name || "-"})
                 </Text>
                 <Text style={{ color: "#fff", fontSize: 12 }}>
                   Level: {item.partner_digimon?.level || 1} Attribute:{" "}
-                  {item.partner_digimon?.id_digimon?.attribute || "-"} Element:{" "}
-                  {item.partner_digimon?.id_digimon?.element || "-"}
+                  {item.partner_digimon?.species?.attribute || "-"} Element:{" "}
+                  {item.partner_digimon?.species?.element || "-"}
                 </Text>
                 <Text style={{ color: "#fff", fontSize: 12 }}>
                   HP:{" "}
-                  {(item.partner_digimon?.id_digimon?.health_points || 0) +
+                  {(item.partner_digimon?.species?.health_points || 0) +
                     2 * (item.partner_digimon?.level || 1)}
                   {"   "}SP:{" "}
-                  {(item.partner_digimon?.id_digimon?.skill_points || 0) +
+                  {(item.partner_digimon?.species?.skill_points || 0) +
                     2 * (item.partner_digimon?.level || 1)}
                   {"   "}ATK:{" "}
-                  {(item.partner_digimon?.id_digimon?.attack || 0) +
+                  {(item.partner_digimon?.species?.attack || 0) +
                     2 * (item.partner_digimon?.level || 1) +
                     (item.partner_digimon?.atk_ev || 0)}
                   {"   "}DEF:{" "}
-                  {(item.partner_digimon?.id_digimon?.defense || 0) +
+                  {(item.partner_digimon?.species?.defense || 0) +
                     2 * (item.partner_digimon?.level || 1) +
                     (item.partner_digimon?.def_ev || 0)}
                   {"   "}SPD:{" "}
-                  {(item.partner_digimon?.id_digimon?.speed || 0) +
+                  {(item.partner_digimon?.species?.speed || 0) +
                     2 * (item.partner_digimon?.level || 1) +
                     (item.partner_digimon?.spe_ev || 0)}
                   {"   "}SPR:{" "}
-                  {(item.partner_digimon?.id_digimon?.spirit || 0) +
+                  {(item.partner_digimon?.species?.spirit || 0) +
                     2 * (item.partner_digimon?.level || 1) +
                     (item.partner_digimon?.spirit_ev || 0)}
                 </Text>
                 <Text style={{ color: "#fff", fontSize: 12 }}>
                   Growth Phase:{" "}
-                  {item.partner_digimon?.id_digimon?.growth_phase || "-"}{" "}
+                  {item.partner_digimon?.species?.growth_phase || "-"}{" "}
                   Friendship: {item.partner_digimon?.friendship || 0}%
                 </Text>
               </TouchableOpacity>
@@ -655,7 +638,7 @@ export default function CharactersScreen() {
                 color="#000"
               />
 
-              {speciesList
+              {digimon
                 .filter((s) =>
                   s.name.toLowerCase().includes(speciesSearch.toLowerCase()),
                 )

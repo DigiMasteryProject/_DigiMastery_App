@@ -1,10 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Alert, Platform, Button, TextInput,Modal,StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useGameData } from "../src/contexts/GameDataContext";
 import api from "../src/services/api";
 
 interface UserCampaign {
@@ -12,7 +23,7 @@ interface UserCampaign {
   id_user: number;
   id_campaign: number;
   human_sheet?: { name: string };
-  partner_digimon?: { nickname: string; id_digimon?: { name: string } };
+  partner_digimon?: { nickname: string; species: Digimon | null };
   observations?: string;
   role?: string;
   campaign?: Campaign;
@@ -25,11 +36,6 @@ interface Campaign {
   next_session?: string;
   map?: string;
   observations?: string;
-}
-
-interface Species {
-  id: number;
-  name: string;
 }
 
 export default function CampaignsScreen() {
@@ -47,8 +53,8 @@ export default function CampaignsScreen() {
   const [digimonVisible, setDigimonVisible] = useState(false);
   const [humans, setHumans] = useState<any[]>([]);
   const [digimons, setDigimons] = useState<any[]>([]);
-  const [speciesList, setSpeciesList] = useState<Species[]>([]);
   const [speciesSearch, setSpeciesSearch] = useState("");
+  const { digimon, digimonMap } = useGameData();
   const [newDigimon, setNewDigimon] = useState({
     nickname: "",
     level: 1,
@@ -63,9 +69,10 @@ export default function CampaignsScreen() {
 
   const getUserId = async () => {
     try {
-      let userData = Platform.OS === "web"
-        ? localStorage.getItem("user")
-        : await SecureStore.getItemAsync("user");
+      let userData =
+        Platform.OS === "web"
+          ? localStorage.getItem("user")
+          : await SecureStore.getItemAsync("user");
 
       if (userData) {
         const user = JSON.parse(userData);
@@ -86,6 +93,7 @@ export default function CampaignsScreen() {
       setLoading(true);
 
       const data = await api.get(`/user_campaign/${ucId}`);
+
       let uc: UserCampaign | null = null;
 
       if (Array.isArray(data.datos) && data.datos.length > 0) {
@@ -100,14 +108,19 @@ export default function CampaignsScreen() {
         return;
       }
 
-      if (!uc.id) {
-        uc.id = uc.id_campaign || 0;
+      // normalize ids
+      if (uc.human_sheet && typeof uc.human_sheet !== "object") {
+        uc.id_human = uc.human_sheet as number;
       }
 
-      if (uc.human_sheet && typeof uc.human_sheet !== "object") uc.id_human = uc.human_sheet as number;
-      if (uc.partner_digimon && typeof uc.partner_digimon !== "object") uc.id_partner = uc.partner_digimon as number;
+      if (uc.partner_digimon && typeof uc.partner_digimon !== "object") {
+        uc.id_partner = uc.partner_digimon as number;
+      }
 
-      if (uc.human_sheet) {
+      // =========================
+      // HUMAN (solo 1 fetch necesario)
+      // =========================
+      if (uc.id_human) {
         try {
           const res = await api.get(`/human/${uc.id_human}`);
           uc.human_sheet = res.datos || { name: "-" };
@@ -116,28 +129,35 @@ export default function CampaignsScreen() {
         }
       }
 
-      if (uc.partner_digimon) {
+      // =========================
+      // PARTNER DIGIMON (sin species fetch)
+      // =========================
+      if (uc.id_partner) {
         try {
           const res = await api.get(`/partner_digimon/${uc.id_partner}`);
-          const partner = res.datos || { nickname: "-", id_digimon: null };
+          const partner = res.datos || {
+            nickname: "-",
+            id_digimon: null,
+          };
 
           if (partner.id_digimon) {
-            try {
-              const digimonRes = await api.get(`/digimon/${partner.id_digimon}`);
-              partner.id_digimon = digimonRes.datos || { name: "-" };
-            } catch {
-              partner.id_digimon = { name: "-" };
-            }
+            partner.species = digimonMap[partner.id_digimon] ?? null;
           } else {
-            partner.id_digimon = { name: "-" };
+            partner.species = null;
           }
 
           uc.partner_digimon = partner;
         } catch {
-          uc.partner_digimon = { nickname: "-", id_digimon: { name: "-" } };
+          uc.partner_digimon = {
+            nickname: "-",
+            species: null,
+          };
         }
       }
 
+      // =========================
+      // CAMPAIGN
+      // =========================
       if (uc.id_campaign) {
         try {
           const res = await api.get(`/campaign/${uc.id_campaign}`);
@@ -148,9 +168,10 @@ export default function CampaignsScreen() {
       }
 
       setUserCampaigns(uc);
-      fetchAvailableSheets(uc.id_user);
-      setObsText(uc.observations || "");
 
+      fetchAvailableSheets(uc.id_user);
+
+      setObsText(uc.observations || "");
     } catch (error: any) {
       console.log(error);
       showAlert("Error", error?.mensaje || "Error cargando campaña");
@@ -160,25 +181,14 @@ export default function CampaignsScreen() {
   };
 
   const fetchAvailableSheets = async (userId: number) => {
-  try {
-
-    const humanRes = await api.get(`/human?id_user=${userId}`);
-    setHumans(humanRes.datos || []);
-
-    const digimonRes = await api.get(`/partner_digimon?id_user=${userId}`);
-    setDigimons(digimonRes.datos || []);
-  } catch (err) {
-    console.log("Error fetching sheets:", err);
-  }
-};
-
-const fetchSpeciesList = async () => {
     try {
-      const res = await api.get("/digimon");
-      setSpeciesList(res.datos || []);
+      const humanRes = await api.get(`/human?id_user=${userId}`);
+      setHumans(humanRes.datos || []);
+
+      const digimonRes = await api.get(`/partner_digimon?id_user=${userId}`);
+      setDigimons(digimonRes.datos || []);
     } catch (err) {
-      console.log("Error fetching species:", err);
-      return [];
+      console.log("Error fetching sheets:", err);
     }
   };
 
@@ -186,13 +196,12 @@ const fetchSpeciesList = async () => {
     getUserId();
     if (currentUserId !== null) {
       fetchUserCampaigns();
-      fetchSpeciesList();
     }
   }, [currentUserId]);
 
   const saveObservations = async () => {
-    if (!userCampaign?.id) {
-      showAlert("Error", "ID no disponible");
+    if (!ucId) {
+      showAlert("Error", "ID no válido");
       return;
     }
 
@@ -201,10 +210,9 @@ const fetchSpeciesList = async () => {
         observations: obsText,
       });
 
-      setUserCampaigns({
-        ...userCampaign,
-        observations: obsText,
-      });
+      setUserCampaigns((prev) =>
+        prev ? { ...prev, observations: obsText } : prev,
+      );
 
       setEditingObs(false);
       showAlert("OK", "Observaciones guardadas");
@@ -215,75 +223,75 @@ const fetchSpeciesList = async () => {
   };
 
   const assignHuman = async (humanId: number) => {
-  try {
-    await api.put(`/user_campaign/${ucId}`, {
-      human_sheet: humanId,
-    });
+    try {
+      await api.put(`/user_campaign/${ucId}`, {
+        human_sheet: humanId,
+      });
 
-    setHumanModalVisible(false);
-    fetchUserCampaigns();
-  } catch (err) {
-    console.log(err);
-  }
-};
+      setHumanModalVisible(false);
+      fetchUserCampaigns();
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
-const createHuman = async () => {
-  try {
-    const res = await api.post(`/human`, {
-      id_user: userCampaign?.id_user,
-      name: "New Human",
-      archetype: "-",
-      courage: 1,
-      skill: 1,
-      intelligence: 1,
-      serenity: 1,
-      strength: 1,
-      perception: 1,
-      darkness: 0,
-    });
+  const createHuman = async () => {
+    try {
+      const res = await api.post(`/human`, {
+        id_user: userCampaign?.id_user,
+        name: "New Human",
+        archetype: "-",
+        courage: 1,
+        skill: 1,
+        intelligence: 1,
+        serenity: 1,
+        strength: 1,
+        perception: 1,
+        darkness: 0,
+      });
 
-    await api.put(`/user_campaign/${ucId}`, {
-      human_sheet: res.datos.id,
-    });
+      await api.put(`/user_campaign/${ucId}`, {
+        human_sheet: res.datos.id,
+      });
 
-    setHumanModalVisible(false);
-    fetchUserCampaigns();
-    router.push({
-      pathname: "/human",
-      params: {        humanId: res.datos.id.toString(),      },
-    });
-  } catch (err) {
-    console.log(err);
-  }
-};
+      setHumanModalVisible(false);
+      fetchUserCampaigns();
+      router.push({
+        pathname: "/human",
+        params: { humanId: res.datos.id.toString() },
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
-const assignDigimon = async (digimonId: number) => {
-  try {
-    await api.put(`/user_campaign/${ucId}`, {
-      partner_digimon: digimonId,
-    });
+  const assignDigimon = async (digimonId: number) => {
+    try {
+      await api.put(`/user_campaign/${ucId}`, {
+        partner_digimon: digimonId,
+      });
 
-    setDigimonModalVisible(false);
-    fetchUserCampaigns();
-  } catch (err) {
-    console.log(err);
-  }
-};
+      setDigimonModalVisible(false);
+      fetchUserCampaigns();
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
-const saveDigimon = async () => {
+  const saveDigimon = async () => {
     newDigimon.id_user = currentUserId;
     try {
-      const res =await api.post(`/partner_digimon`, newDigimon);
+      const res = await api.post(`/partner_digimon`, newDigimon);
       setNewDigimon((prev) => (prev ? { ...prev, ...newDigimon } : prev));
-        await api.put(`/user_campaign/${ucId}`, {
-          partner_digimon: res.datos.id,
-        });
+      await api.put(`/user_campaign/${ucId}`, {
+        partner_digimon: res.datos.id,
+      });
       setDigimonVisible(false);
       showAlert("OK", "Digimon creado y asignado");
       fetchUserCampaigns();
       router.push({
         pathname: "/digimonSheet",
-        params: {          digimonId: res.datos.id.toString(),        },
+        params: { digimonId: res.datos.id.toString() },
       });
     } catch (err) {
       console.log("Error al guardar cambios:", err);
@@ -291,7 +299,10 @@ const saveDigimon = async () => {
   };
 
   return (
-    <LinearGradient colors={["#0a0e1f", "#1a2342", "#2d3561"]} style={{ flex: 1, padding: 16 }}>
+    <LinearGradient
+      colors={["#0a0e1f", "#1a2342", "#2d3561"]}
+      style={{ flex: 1, padding: 16 }}
+    >
       <View
         style={{
           backgroundColor: "#1e3a5f",
@@ -306,21 +317,29 @@ const saveDigimon = async () => {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{ flexDirection: "row", alignItems: "center", marginRight: 12 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginRight: 12,
+            }}
           >
             <Feather name="arrow-left" size={16} color="#00d9ff" />
-            <Text style={{ color: "#00d9ff", fontSize: 18, marginLeft: 4 }}>BACK</Text>
+            <Text style={{ color: "#00d9ff", fontSize: 18, marginLeft: 4 }}>
+              BACK
+            </Text>
           </TouchableOpacity>
 
           <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={{
-              color: "#00d9ff",
-              fontWeight: "bold",
-              fontSize: 34,
-              textShadowColor: "#3f1058",
-              textShadowOffset: { width: 6, height: 6 },
-              textShadowRadius: 1
-            }}>
+            <Text
+              style={{
+                color: "#00d9ff",
+                fontWeight: "bold",
+                fontSize: 34,
+                textShadowColor: "#3f1058",
+                textShadowOffset: { width: 6, height: 6 },
+                textShadowRadius: 1,
+              }}
+            >
               {userCampaign?.human_sheet?.name || "PLAYER"}'s DATA
             </Text>
           </View>
@@ -330,9 +349,13 @@ const saveDigimon = async () => {
       </View>
 
       {loading ? (
-        <Text style={{ textAlign: "center", color: "#fff", marginTop: 40 }}>Loading...</Text>
+        <Text style={{ textAlign: "center", color: "#fff", marginTop: 40 }}>
+          Loading...
+        </Text>
       ) : !userCampaign ? (
-        <Text style={{ textAlign: "center", color: "#fff", marginTop: 40 }}>No data</Text>
+        <Text style={{ textAlign: "center", color: "#fff", marginTop: 40 }}>
+          No data
+        </Text>
       ) : (
         <View
           style={{
@@ -356,9 +379,20 @@ const saveDigimon = async () => {
                 });
               }
             }}
-            style={{ backgroundColor: "#00d9ff", padding: 12, borderRadius: 8, marginBottom: 12 }}
+            style={{
+              backgroundColor: "#00d9ff",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 12,
+            }}
           >
-            <Text style={{ textAlign: "center", fontWeight: "bold", color: "#1e5a8e" }}>
+            <Text
+              style={{
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "#1e5a8e",
+              }}
+            >
               {userCampaign.human_sheet?.name?.toUpperCase() || "CREATE HUMAN"}
             </Text>
           </TouchableOpacity>
@@ -376,10 +410,18 @@ const saveDigimon = async () => {
                 });
               }
             }}
-            style={{ backgroundColor: "#ff6699", padding: 12, borderRadius: 8, marginBottom: 12 }}
+            style={{
+              backgroundColor: "#ff6699",
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 12,
+            }}
           >
-            <Text style={{ textAlign: "center", fontWeight: "bold", color: "#fff" }}>
-              {userCampaign.partner_digimon?.nickname?.toUpperCase() || "CREATE DIGIMON"}
+            <Text
+              style={{ textAlign: "center", fontWeight: "bold", color: "#fff" }}
+            >
+              {userCampaign.partner_digimon?.nickname?.toUpperCase() ||
+                "CREATE DIGIMON"}
             </Text>
           </TouchableOpacity>
 
@@ -392,7 +434,9 @@ const saveDigimon = async () => {
               marginBottom: 12,
             }}
           >
-            <Text style={{ color: "#00ff88", fontWeight: "bold", marginBottom: 6 }}>
+            <Text
+              style={{ color: "#00ff88", fontWeight: "bold", marginBottom: 6 }}
+            >
               OBSERVATIONS
             </Text>
 
@@ -413,9 +457,19 @@ const saveDigimon = async () => {
 
                 <TouchableOpacity
                   onPress={saveObservations}
-                  style={{ backgroundColor: "#00ff88", padding: 8, borderRadius: 6 }}
+                  style={{
+                    backgroundColor: "#00ff88",
+                    padding: 8,
+                    borderRadius: 6,
+                  }}
                 >
-                  <Text style={{ textAlign: "center", fontWeight: "bold", color: "#1e5a8e" }}>
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      color: "#1e5a8e",
+                    }}
+                  >
                     SAVE
                   </Text>
                 </TouchableOpacity>
@@ -428,9 +482,19 @@ const saveDigimon = async () => {
 
                 <TouchableOpacity
                   onPress={() => setEditingObs(true)}
-                  style={{ backgroundColor: "#00ff88", padding: 8, borderRadius: 6 }}
+                  style={{
+                    backgroundColor: "#00ff88",
+                    padding: 8,
+                    borderRadius: 6,
+                  }}
                 >
-                  <Text style={{ textAlign: "center", fontWeight: "bold", color: "#1e5a8e" }}>
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      color: "#1e5a8e",
+                    }}
+                  >
                     EDIT
                   </Text>
                 </TouchableOpacity>
@@ -439,14 +503,24 @@ const saveDigimon = async () => {
           </View>
 
           <TouchableOpacity
-            onPress={() => router.push({ pathname: "/codeRedeem", params: { userId: userCampaign?.id_uc.toString() || "" } })}
+            onPress={() =>
+              router.push({
+                pathname: "/codeRedeem",
+                params: { userId: userCampaign?.id_uc.toString() || "" },
+              })
+            }
             style={{ backgroundColor: "#ffa500", padding: 12, borderRadius: 8 }}
           >
-            <Text style={{ textAlign: "center", fontWeight: "bold", color: "#1e5a8e" }}>
+            <Text
+              style={{
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "#1e5a8e",
+              }}
+            >
               REDEEM REWARDS
             </Text>
           </TouchableOpacity>
-
         </View>
       )}
 
@@ -467,9 +541,7 @@ const saveDigimon = async () => {
 
             {humans.map((h) => (
               <TouchableOpacity key={h.id} onPress={() => assignHuman(h.id)}>
-                <Text style={{ color: "#00d9ff", padding: 6 }}>
-                  {h.name}
-                </Text>
+                <Text style={{ color: "#00d9ff", padding: 6 }}>{h.name}</Text>
               </TouchableOpacity>
             ))}
 
@@ -499,12 +571,15 @@ const saveDigimon = async () => {
               </TouchableOpacity>
             ))}
 
-            <Button title="Close" onPress={() => setDigimonModalVisible(false)} />
+            <Button
+              title="Close"
+              onPress={() => setDigimonModalVisible(false)}
+            />
           </View>
         </View>
       </Modal>
 
-            <Modal visible={digimonVisible} animationType="slide" transparent>
+      <Modal visible={digimonVisible} animationType="slide" transparent>
         <View
           style={{
             flex: 1,
@@ -666,6 +741,7 @@ const saveDigimon = async () => {
                 marginBottom: 8,
                 padding: 8,
                 borderRadius: 4,
+                color: "#000",
               }}
             />
 
@@ -678,10 +754,15 @@ const saveDigimon = async () => {
                 backgroundColor: "#fff",
                 marginBottom: 12,
                 borderRadius: 4,
+                color: "#000",
               }}
             >
-              <Picker.Item label="-- Select Species --" value={0} />
-              {speciesList
+              <Picker.Item
+                label="-- Select Species --"
+                value={0}
+                color="#000"
+              />
+              {digimon
                 .filter((s) =>
                   s.name.toLowerCase().includes(speciesSearch.toLowerCase()),
                 )
@@ -690,6 +771,7 @@ const saveDigimon = async () => {
                     key={species.id}
                     label={`${species.name} (#${species.id})`}
                     value={species.id}
+                    color="#000"
                   />
                 ))}
             </Picker>

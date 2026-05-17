@@ -46,9 +46,10 @@ export default function DigimonSheet() {
 
       // 2️⃣ SPECIES ID
       const speciesId = other.id_digimon;
-
+      console.log("Fetched other_digimon:", { other, speciesId });
       // 3️⃣ DIGIMON SPECIES
       const res2 = await api.get(`/digimon/${speciesId}`);
+      console.log("Fetched digimon species:", { res2 });
       const d = res2.datos;
 
       setDigimon({

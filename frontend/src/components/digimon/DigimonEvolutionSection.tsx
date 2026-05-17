@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import api from "../../services/api";
+import { useGameData } from "../../contexts/GameDataContext";
 import { styles } from "./Styles";
 
 interface Props {
@@ -21,56 +22,37 @@ export default function DigimonEvolutionSection({
 }: Props) {
   const [evolutions, setEvolutions] = useState<any[]>([]);
   const [preEvolutions, setPreEvolutions] = useState<any[]>([]);
-  const [nameMap, setNameMap] = useState<Record<number, string>>({});
+  const { digimonMap } = useGameData();
 
-  /* ================= LOAD NAME MAP ================= */
-  const fetchNames = async () => {
-    const res = await api.get(`/digimon`);
-    const list = Array.isArray(res?.datos) ? res.datos : [];
-
-    const map: Record<number, string> = {};
-    list.forEach((d: any) => {
-      const id = d.id ?? d.digimon_id ?? d.id_digimon;
-      const name = d.name ?? d.nombre;
-      if (id != null) map[id] = name;
-    });
-
-    return map; // 👈 IMPORTANTE: devolverlo
-  };
-
-  const getName = (id: number, map: Record<number, string>) => {
-    return map[id] ?? `#${id}`;
-  };
+  const getName = (id: number) => {
+  return digimonMap?.[id]?.name ?? `#${id}`;
+};
 
   /* ================= BUILD UNIFIED LIST ================= */
-  const buildUnifiedList = (
-    prev: any[],
-    next: any[],
-    map: Record<number, string>
-  ) => {
-    const prevMapped = prev.map((evo) => ({
-      id: evo.base_digimon_id,
-      name: getName(evo.base_digimon_id, map),
-      type: "prev" as const,
-    }));
+ const buildUnifiedList = (prev: any[], next: any[]) => {
+  const prevMapped = prev.map((evo) => ({
+    id: evo.base_digimon_id,
+    name: getName(evo.base_digimon_id),
+    type: "prev" as const,
+  }));
 
-    const nextMapped = next.map((evo) => ({
-      id: evo.new_digimon_id,
-      name: getName(evo.new_digimon_id, map),
-      type: "evo" as const,
-    }));
+  const nextMapped = next.map((evo) => ({
+    id: evo.new_digimon_id,
+    name: getName(evo.new_digimon_id),
+    type: "evo" as const,
+  }));
 
-    const unique = new Map<number, any>();
+  const unique = new Map<number, any>();
 
-    [...prevMapped, ...nextMapped].forEach((item) => {
-      unique.set(item.id, item);
-    });
+  [...prevMapped, ...nextMapped].forEach((item) => {
+    unique.set(item.id, item);
+  });
 
-    return Array.from(unique.values());
-  };
+  return Array.from(unique.values());
+};
 
   /* ================= FETCH EVOLUTIONS ================= */
-  const fetchData = async (map: Record<number, string>) => {
+  const fetchData = async () => {
     if (!digimonId) return;
 
     const res1 = await api.get(`/digimon_evolution/base/${digimonId}`);
@@ -82,7 +64,7 @@ export default function DigimonEvolutionSection({
     setEvolutions(next);
     setPreEvolutions(prev);
 
-    const unified = buildUnifiedList(prev, next, map);
+    const unified = buildUnifiedList(prev, next);
 
     onDataLoaded?.({
       evolutionOptions: unified,
@@ -91,16 +73,14 @@ export default function DigimonEvolutionSection({
 
   /* ================= EFFECT ================= */
   useEffect(() => {
-    if (!digimonId) return;
+  if (!digimonId) return;
 
-    const load = async () => {
-      const map = await fetchNames(); // 👈 ahora SÍ es seguro
-      setNameMap(map); // opcional (UI)
-      await fetchData(map); // 👈 usamos el map directo
-    };
+  const load = async () => {
+    await fetchData();
+  };
 
-    load();
-  }, [digimonId]);
+  load();
+}, [digimonId]);
 
   return (
     <View style={{ marginTop: 16 }}>
@@ -112,7 +92,7 @@ export default function DigimonEvolutionSection({
         preEvolutions.map((evo) => (
           <View key={evo.id_evo} style={styles.skillCard}>
             <Text style={{ color: "#0ff", fontWeight: "bold" }}>
-              {getName(evo.base_digimon_id, nameMap)}
+              {getName(evo.base_digimon_id)}
             </Text>
             <Text style={{ color: "#aaa", fontSize: 12 }}>
               {evo.evo_condition}
@@ -131,7 +111,7 @@ export default function DigimonEvolutionSection({
         evolutions.map((evo) => (
           <View key={evo.id_evo} style={styles.skillCard}>
             <Text style={{ color: "#0ff", fontWeight: "bold" }}>
-              {getName(evo.new_digimon_id, nameMap)}
+              {getName(evo.new_digimon_id)}
             </Text>
             <Text style={{ color: "#aaa", fontSize: 12 }}>
               {evo.evo_condition}

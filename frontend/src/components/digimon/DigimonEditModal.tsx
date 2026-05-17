@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Modal,
-  TextInput,
-  Button,
-} from "react-native";
+import { Button, Modal, Text, TextInput, View } from "react-native";
 
 import { Picker } from "@react-native-picker/picker";
 import { styles } from "./Styles";
@@ -46,10 +40,7 @@ export default function DigimonEditModal({
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-
-          <Text style={styles.modalTitle}>
-            Edit Digimon
-          </Text>
+          <Text style={styles.modalTitle}>Edit Digimon</Text>
 
           {/* 🔒 SAFE ACCESS INLINE (NO RETURN NULL) */}
 
@@ -61,11 +52,11 @@ export default function DigimonEditModal({
                 onChangeText={(t) =>
                   setEditData((d: any) => ({
                     ...d,
-                nickname: t,
-              }))
-            }
-            style={styles.input}
-          />
+                    nickname: t,
+                  }))
+                }
+                style={styles.input}
+              />
             </>
           )}
 
@@ -187,15 +178,15 @@ export default function DigimonEditModal({
             }
             style={styles.input}
           >
-            <Picker.Item label="-- Select Species --" value={0}  color="000"/>
+            <Picker.Item label="-- Select Species --" value={0} color="000" />
 
             {evolutionOptions?.map((item) => (
-               <Picker.Item
-      key={item.id}
-      label={item.name}
-      value={item.id}
-      color="#000"
-    />
+              <Picker.Item
+                key={item.id}
+                label={item.name}
+                value={item.id}
+                color="#000"
+              />
             ))}
           </Picker>
 
@@ -204,7 +195,6 @@ export default function DigimonEditModal({
             <Button title="Cancel" onPress={onClose} />
             <Button title="Save" onPress={onSave} />
           </View>
-
         </View>
       </View>
     </Modal>

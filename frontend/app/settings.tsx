@@ -221,6 +221,7 @@ export default function OptionsScreen() {
 
             <TextInput
               placeholder="Username"
+              placeholderTextColor="#666"
               value={userData.username}
               onChangeText={(t) => setUserData({ ...userData, username: t })}
               style={styles.input}
@@ -228,6 +229,7 @@ export default function OptionsScreen() {
 
             <TextInput
               placeholder="Email"
+              placeholderTextColor="#666"
               value={userData.email}
               onChangeText={(t) => setUserData({ ...userData, email: t })}
               style={styles.input}
@@ -235,6 +237,8 @@ export default function OptionsScreen() {
 
             <TextInput
               placeholder="Password"
+              placeholderTextColor="#666"
+              autoCapitalize="none"
               secureTextEntry
               value={userData.password}
               onChangeText={(t) => setUserData({ ...userData, password: t })}
@@ -337,6 +341,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 6,
     marginBottom: 10,
+    color: "#0a1628",
   },
 
   saveBtn: {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { Platform, View, ActivityIndicator } from "react-native";
 import * as Notifications from "expo-notifications";
+import { GameDataProvider } from "../src/contexts/GameDataContext"
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -56,7 +57,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Slot />
+      <GameDataProvider>
+        <Slot />
+      </GameDataProvider>
     </SafeAreaProvider>
   );
 }
