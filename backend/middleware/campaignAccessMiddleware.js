@@ -5,18 +5,20 @@ const campaignAccess = async (req, res, next) => {
     const campaignId =
       req.body?.id_campaign ||
       req.query?.id_campaign ||
-      req.params?.id;
+      req.params?.id_campaign ||
+      req.params?.id ||
+      req.query?.campaign;
 
     if (!campaignId) return next();
 
     if (req.user?.role?.toUpperCase() === "ADMIN") return next();
 
     const access = await userCampaignService.getAll({
-      id_campaign: campaignId,
-      id_user: req.user.id,
+      id_campaign: Number(campaignId),
+      id_user: Number(req.user.id),
     });
 
-    if (!access.length) {
+    if (!access || access.length === 0) {
       return res.status(403).json({
         ok: false,
         mensaje: "No tienes acceso a esta campaña",
@@ -26,7 +28,7 @@ const campaignAccess = async (req, res, next) => {
     req.userCampaign = access[0];
     next();
   } catch (err) {
-    console.log(err);
+    console.log("campaignAccess error:", err);
     return res.status(500).json({ ok: false, mensaje: "Error interno" });
   }
 };
