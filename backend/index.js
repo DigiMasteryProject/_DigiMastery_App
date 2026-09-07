@@ -1,7 +1,5 @@
 require("dotenv").config();
-
 const { ipKeyGenerator } = require("express-rate-limit");
-
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
@@ -31,14 +29,11 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // permitir Postman / apps móviles
       if (!origin) return callback(null, true);
-
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-
-      return callback(null, true); // 👈 en prod evitas bloqueos silenciosos
+      return callback(null, true);
     },
     credentials: false,
   })
@@ -47,28 +42,19 @@ app.use(
 /* =========================
    BODY PARSERS
 ========================= */
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+/* =========================
+   RATE LIMIT (RAILWAY SAFE)
+========================= */
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 50000,
-  keyGenerator: ipKeyGenerator,  // <-- CHANGE THIS LINE
+  keyGenerator: ipKeyGenerator,
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.method === "OPTIONS",
-  message: {
-    ok: false,
-    mensaje: "Too many requests. Please try again later.",
-  },
-});
-
-    // fallback seguro
-    return req.ip || "unknown-ip";
-  },
-
-  standardHeaders: true,
-  legacyHeaders: false,
-
-  skip: (req) => req.method === "OPTIONS",
-
   message: {
     ok: false,
     mensaje: "Too many requests. Please try again later.",
@@ -77,30 +63,25 @@ const limiter = rateLimit({
 
 const whitelistedRoutes = ["/digimon", "/partner_digimon", "/human", "/npc"];
 app.use((req, res, next) => {
- const isWhitelisted = whitelistedRoutes.some(route => req.path === route || req.path.startsWith(route + "/"));
- if (isWhitelisted) {
- return next();
- }
-limiter(req, res, next);
+  const isWhitelisted = whitelistedRoutes.some(route => req.path === route || req.path.startsWith(route + "/"));
+  if (isWhitelisted) {
+    return next();
+  }
+  limiter(req, res, next);
 });
-
 
 /* =========================
-   DEBUG MIDDLEWARE (MUY IMPORTANTE)
+   DEBUG MIDDLEWARE
 ========================= */
 app.use((req, res, next) => {
-  console.log("RATE CHECK:", req.method, req.path, req.ip);
+  console.log(`➡️ ${req.method} ${req.url}`);
   next();
 });
+
 /* =========================
    MODELS
 ========================= */
 require("./models/init-models")(sequelize);
-
-app.all("*", (req, res, next) => {
-  console.log("🔥 REQUEST:", req.method, req.url);
-  next();
-});
 
 /* =========================
    ROUTES
@@ -137,7 +118,6 @@ app.get("/", (req, res) => {
 ========================= */
 app.use((err, req, res, next) => {
   console.error("❌ ERROR:", err);
-
   res.status(500).json({
     ok: false,
     mensaje: "Internal server error",
