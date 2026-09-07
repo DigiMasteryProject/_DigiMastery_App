@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const { ipKeyGenerator } = require("express-rate-limit");
+
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
@@ -45,23 +47,18 @@ app.use(
 /* =========================
    BODY PARSERS
 ========================= */
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
-
-/* =========================
-   RATE LIMIT (RAILWAY SAFE)
-========================= */
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 50000,
-
-  keyGenerator: (req) => {
-    const forwarded = req.headers["x-forwarded-for"];
-
-    // Railway / proxies
-    if (typeof forwarded === "string" && forwarded.length > 0) {
-      return forwarded.split(",")[0].trim();
-    }
+  keyGenerator: ipKeyGenerator,  // <-- CHANGE THIS LINE
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS",
+  message: {
+    ok: false,
+    mensaje: "Too many requests. Please try again later.",
+  },
+});
 
     // fallback seguro
     return req.ip || "unknown-ip";
@@ -91,10 +88,6 @@ limiter(req, res, next);
 /* =========================
    DEBUG MIDDLEWARE (MUY IMPORTANTE)
 ========================= */
-app.use((req, res, next) => {
-  console.log(`➡️ ${req.method} ${req.url}`);
-  next();
-});
 app.use((req, res, next) => {
   console.log("RATE CHECK:", req.method, req.path, req.ip);
   next();
