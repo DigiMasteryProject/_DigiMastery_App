@@ -42,11 +42,13 @@ class UserCampaignController {
     });
   }
 }
-  async getUserCampaignById(req, res) {
+ async getUserCampaignById(req, res) {
   try {
     const id = req.params.id;
+    console.log(`[DEBUG] getUserCampaignById: id=${id}, req.user=`, req.user);
 
     const data = await userCampaignService.getUserCampaignById(id);
+    console.log(`[DEBUG] data fetched:`, data);
 
     if (!data) {
       return res.status(404).json({
@@ -58,8 +60,11 @@ class UserCampaignController {
     // Check ownership: user must be ADMIN or the owner of the record
     const isAdmin = req.user.role === "ADMIN";
     const isOwner = Number(data.id_user) === Number(req.user.id);
+    
+    console.log(`[DEBUG] ownership check: isAdmin=${isAdmin}, isOwner=${isOwner}, data.id_user=${data.id_user}, req.user.id=${req.user.id}`);
 
     if (!isAdmin && !isOwner) {
+      console.log(`[DEBUG] ACCESS DENIED: User ${req.user.id} tried to access record ${id} (belongs to user ${data.id_user})`);
       return res.status(403).json({
         ok: false,
         mensaje: "Sin permisos",
@@ -76,6 +81,7 @@ class UserCampaignController {
     return res.status(500).json({ ok: false });
   }
 }
+
 
   async createUserCampaign(req, res) {
   try {
