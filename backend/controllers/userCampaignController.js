@@ -43,28 +43,39 @@ class UserCampaignController {
   }
 }
   async getUserCampaignById(req, res) {
-    try {
-      const id = req.params.id;
+  try {
+    const id = req.params.id;
 
-      const data = await userCampaignService.getUserCampaignById(id);
+    const data = await userCampaignService.getUserCampaignById(id);
 
-      if (!data) {
-        return res.status(404).json({
-          ok: false,
-          mensaje: "No encontrado",
-        });
-      }
-
-      return res.json({
-        ok: true,
-        datos: data,
+    if (!data) {
+      return res.status(404).json({
+        ok: false,
+        mensaje: "No encontrado",
       });
-
-    } catch (err) {
-      logMensaje(err);
-      return res.status(500).json({ ok: false });
     }
+
+    // Check ownership: user must be ADMIN or the owner of the record
+    const isAdmin = req.user.role === "ADMIN";
+    const isOwner = Number(data.id_user) === Number(req.user.id);
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        ok: false,
+        mensaje: "Sin permisos",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      datos: data,
+    });
+
+  } catch (err) {
+    logMensaje(err);
+    return res.status(500).json({ ok: false });
   }
+}
 
   async createUserCampaign(req, res) {
   try {
